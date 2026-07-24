@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-400 via-purple-700 to-blue-400">
+
+    <div class="flex w-11/12 max-w-4xl h-[650px] bg-white rounded-2xl overflow-hidden shadow-2xl">
+
+        <div class="flex-1 bg-purple-800 flex flex-col items-center justify-center p-8">
+            <img src="lock.png" alt="Lock icon" class="w-24 h-24 mb-4">
+            <h1 class="text-3xl font-bold text-white">Welcome Page</h1>
+        </div>
+
+        <div class="flex-1 p-10">
+
+            <h1 class="text-3xl font-bold mb-4">Login</h1>
+
+            <form id="loginForm">
+
+                <label for="username" class="block mb-1">Email:</label>
+                <input type="email" id="username" required class="border rounded w-full p-2 mb-4">
+
+                <label for="password" class="block mb-1">Password:</label>
+                <input type="password" id="password" required class="border rounded w-full p-2 mb-4">
+
+                <button type="submit" class="w-full bg-purple-800 text-white font-semibold rounded p-3">Login</button>
+
+            </form>
+
+            <a href="forgot_password.html" class="block mt-4">Forgot Password?</a>
+
+            <button type="button" onclick="window.location.href='signup.html'" class="border rounded w-full p-2 mt-4">
+                Create an Account
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        const loginForm = document.getElementById("loginForm");
+
+        loginForm.addEventListener("submit", function(e) {
+            e.preventDefault();
+
+            const enteredUsername = document.getElementById("username").value.trim();
+            const enteredPassword = document.getElementById("password").value;
+
+            const savedUsername = localStorage.getItem("username");
+            const savedPassword = localStorage.getItem("password");
+
+            if (!savedUsername || !savedPassword) {
+                alert("create an account first");
+                return;
+            }
+
+            if (enteredUsername === savedUsername &&
+                enteredPassword === savedPassword) {
+
+                window.location.href = "todo.html";
+
+            } else {
+
+                alert("incorrect username/password.");
+
+            }
+        });
+    </script>
+
+</body>
+</html>
