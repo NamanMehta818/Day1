@@ -26,6 +26,7 @@
                 <label for="password" class="block mb-1">Password:</label>
                 <input type="password" id="password" required class="border rounded w-full p-2 mb-1">
                 <p class="text-xs text-gray-500 mb-4">Must be 8+ characters, include 1 capital letter and 1 special character</p>
+                <button type="button" id="togglePassword">Show</button>
 
                 <button type="submit" class="w-full bg-purple-800 text-white font-semibold rounded p-3">Create Account</button>
 
@@ -39,6 +40,20 @@
     </div>
 
     <script>
+        const signupForm = document.getElementById("signupForm");
+        const passwordInput = document.getElementById("password");
+        const toggleButton = document.getElementById("togglePassword");
+
+        toggleButton.addEventListener("click", function() {
+                if (passwordInput.type === "password") {
+                    passwordInput.type = "text";
+                    toggleButton.textContent = "Hide";
+                } else {
+                    passwordInput.type = "password";
+                    toggleButton.textContent = "Show";
+                }
+            });
+
         function isValidPassword(password) {
             if (password.length < 8) {
                 return false;
@@ -62,8 +77,6 @@
 
             return hasCapital && hasSpecial;
         }
-
-        const signupForm = document.getElementById("signupForm");
 
         signupForm.addEventListener("submit", function(e) {
             e.preventDefault();
