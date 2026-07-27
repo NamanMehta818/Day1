@@ -41,7 +41,12 @@
             const checkbox = document.createElement("input");
             checkbox.type = "checkbox";
             checkbox.onchange = function() {
-                li.style.textDecoration = checkbox.checked ? "line-through" : "none";
+                if (checkbox.checked) {
+                    li.style.textDecoration = "line-through";
+                }
+                else {
+                    li.style.textDecoration = "none";
+                }
             };
 
             const deleteBtn = document.createElement("button");
