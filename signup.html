@@ -61,7 +61,9 @@
 
             var hasCapital = false;
             var hasSpecial = false;
-            var specialChars = "!@#$%^&*()";
+            var hasNum = false;
+            var special = "!@#$%^&*()";
+            var nums = "0123456789";
 
             for (var i = 0; i < password.length; i++) {
                 var char = password[i];
@@ -70,12 +72,16 @@
                     hasCapital = true;
                 }
 
-                if (specialChars.indexOf(char) !== -1) {
+                if (special.indexOf(char) !== -1) {
                     hasSpecial = true;
                 }
+                if (nums.indexOf(char) !== -1) {
+                    hasNum = true;
+                }
+            
             }
 
-            return hasCapital && hasSpecial;
+            return hasCapital && hasSpecial && hasNum;
         }
 
         signupForm.addEventListener("submit", function(e) {
