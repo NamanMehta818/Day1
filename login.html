@@ -27,6 +27,8 @@
                 <label for="password" class="block mb-1">Password:</label>
                 <input type="password" id="password" required class="border rounded w-full p-2 mb-4">
 
+                <button type="button" id="togglePassword">Show</button>
+
                 <button type="submit" class="w-full bg-purple-800 text-white font-semibold rounded p-3">Login</button>
 
             </form>
@@ -42,12 +44,24 @@
 
     <script>
         const loginForm = document.getElementById("loginForm");
+        const passwordInput = document.getElementById("password");
+        const toggleButton = document.getElementById("togglePassword");
+
+        toggleButton.addEventListener("click", function() {
+                if (passwordInput.type === "password") {
+                    passwordInput.type = "text";
+                    toggleButton.textContent = "Hide";
+                } else {
+                    passwordInput.type = "password";
+                    toggleButton.textContent = "Show";
+                }
+            });
 
         loginForm.addEventListener("submit", function(e) {
             e.preventDefault();
 
             const enteredUsername = document.getElementById("username").value.trim();
-            const enteredPassword = document.getElementById("password").value;
+            const enteredPassword = passwordInput.value;
 
             const savedUsername = localStorage.getItem("username");
             const savedPassword = localStorage.getItem("password");
@@ -60,7 +74,8 @@
             if (enteredUsername === savedUsername &&
                 enteredPassword === savedPassword) {
 
-                window.location.href = "todo.html";
+                sessionStorage.setItem("loggedIn", "true");
+                window.location.href = "lists.html";
 
             } else {
 

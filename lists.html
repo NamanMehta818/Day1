@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Lists</title>
+</head>
+<body>
+
+    <h1>My Lists</h1>
+
+    <input type="text" id="listInput">
+    <button id="addListBtn">Add List</button>
+
+    <ul id="listOfLists"></ul>
+
+    <script>
+    var listInput = document.getElementById("listInput");
+    var addListBtn = document.getElementById("addListBtn");
+    var listOfLists = document.getElementById("listOfLists");
+
+    var lists = JSON.parse(localStorage.getItem("lists"));
+    if (lists == null) {
+        lists = [];
+    }
+
+    addListBtn.onclick = function() {
+        var name = listInput.value;
+
+        if (name == "") {
+            return;
+        }
+
+        lists.push({ 
+            name: name, 
+            tasks: [] 
+        });
+        
+        localStorage.setItem("lists", JSON.stringify(lists));
+        listInput.value = "";
+        location.reload();
+    };
+
+    var listHtml = "";
+    for (var i = 0; i < lists.length; i++) {
+        var currentList = lists[i];
+        listHtml += "<li style='cursor: pointer;' onclick='goToList(" + i + ")'>" + currentList.name + "</li>";
+    }
+    listOfLists.innerHTML = listHtml;
+
+    function goToList(index) {
+        window.location.href = "tasks.html?list=" + index;
+    }
+    </script>
+
+</body>
+</html>
