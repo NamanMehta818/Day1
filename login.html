@@ -61,7 +61,7 @@
             e.preventDefault();
 
             const enteredUsername = document.getElementById("username").value.trim();
-            const enteredPassword = document.getElementById("password").value;
+            const enteredPassword = passwordInput.value;
 
             const savedUsername = localStorage.getItem("username");
             const savedPassword = localStorage.getItem("password");
@@ -74,7 +74,8 @@
             if (enteredUsername === savedUsername &&
                 enteredPassword === savedPassword) {
 
-                window.location.href = "todo.html";
+                sessionStorage.setItem("loggedIn", "true");
+                window.location.href = "lists.html";
 
             } else {
 

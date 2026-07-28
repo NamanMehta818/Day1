@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Tasks</title>
+</head>
+<body>
+
+    <a href="lists.html"><button>Go Back</button></a>
+    
+    <h1 id="listTitle">My Task List</h1>
+    
+    <input type="text" id="taskInput">
+    <button id="addTaskBtn">Add Task</button>
+    
+    <ul id="taskList"></ul>
+
+    <script>
+    var urlParams = new URLSearchParams(window.location.search);
+    var listIndex = urlParams.get("list");
+
+    var listTitle = document.getElementById("listTitle");
+    var taskInput = document.getElementById("taskInput");
+    var addTaskBtn = document.getElementById("addTaskBtn");
+    var taskList = document.getElementById("taskList");
+
+    var allLists = JSON.parse(localStorage.getItem("lists"));
+
+    listTitle.innerHTML = allLists[listIndex].name;
+
+    addTaskBtn.onclick = function() {
+        var text = taskInput.value;
+        
+        if (text == "") {
+            return;
+        }
+
+        allLists[listIndex].tasks.push({ 
+            text: text, 
+            done: false 
+        });
+        
+        localStorage.setItem("lists", JSON.stringify(allLists));
+        taskInput.value = "";
+        location.reload(); 
+    };
+
+    var currentTasks = allLists[listIndex].tasks;
+    var listHtml = "";
+
+    for (var i = 0; i < currentTasks.length; i++) {
+        var task = currentTasks[i];
+        if (task.done == false) {
+            listHtml += "<li><input type='checkbox' onclick='toggleTask(" + i + ")'> " + task.text + " <button onclick='editTask(" + i + ")'>Edit</button> <button onclick='deleteTask(" + i + ")'>Delete</button></li>";
+        }
+    }
+
+    for (var i = 0; i < currentTasks.length; i++) {
+        var task = currentTasks[i];
+        if (task.done == true) {
+            listHtml += "<li><input type='checkbox' checked onclick='toggleTask(" + i + ")'> <del>" + task.text + "</del> <button onclick='editTask(" + i + ")'>Edit</button> <button onclick='deleteTask(" + i + ")'>Delete</button></li>";
+        }
+    }
+    
+    taskList.innerHTML = listHtml;
+
+    function toggleTask(index) {
+        if (allLists[listIndex].tasks[index].done == true) {
+            allLists[listIndex].tasks[index].done = false;
+        } else {
+            allLists[listIndex].tasks[index].done = true;
+        }
+        localStorage.setItem("lists", JSON.stringify(allLists));
+        location.reload();
+    }
+
+    function editTask(index) {
+        var newText = prompt("Change task to:", allLists[listIndex].tasks[index].text);
+        if (newText != null) {
+            allLists[listIndex].tasks[index].text = newText;
+            localStorage.setItem("lists", JSON.stringify(allLists));
+            location.reload();
+        }
+    }
+
+    function deleteTask(index) {
+        allLists[listIndex].tasks.splice(index, 1);
+        localStorage.setItem("lists", JSON.stringify(allLists));
+        location.reload();
+    }
+    </script>
+
+</body>
+</html>
