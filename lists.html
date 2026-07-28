@@ -13,15 +13,18 @@
     <ul id="listOfLists"></ul>
 
     <script>
-    if(loggedIn !== true) {
+    if (sessionStorage.getItem("loggedIn") !== "true") {
         window.location.href = "login.html";
     }
-    
+
+    var currentUser = sessionStorage.getItem("currentUser");
+    var listsKey = "lists_" + currentUser;
+
     var listInput = document.getElementById("listInput");
     var addListBtn = document.getElementById("addListBtn");
     var listOfLists = document.getElementById("listOfLists");
 
-    var lists = JSON.parse(localStorage.getItem("lists"));
+    var lists = JSON.parse(localStorage.getItem(listsKey));
     if (lists == null) {
         lists = [];
     }
@@ -38,7 +41,7 @@
             tasks: [] 
         });
         
-        localStorage.setItem("lists", JSON.stringify(lists));
+        localStorage.setItem(listsKey, JSON.stringify(lists));
         listInput.value = "";
         location.reload();
     };

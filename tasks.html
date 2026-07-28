@@ -15,6 +15,13 @@
     <ul id="taskList"></ul>
 
     <script>
+    if (sessionStorage.getItem("loggedIn") !== "true") {
+        window.location.href = "login.html";
+    }
+
+    var currentUser = sessionStorage.getItem("currentUser");
+    var listsKey = "lists_" + currentUser;
+
     var urlParams = new URLSearchParams(window.location.search);
     var listIndex = urlParams.get("list");
 
@@ -23,7 +30,7 @@
     var addTaskBtn = document.getElementById("addTaskBtn");
     var taskList = document.getElementById("taskList");
 
-    var allLists = JSON.parse(localStorage.getItem("lists"));
+    var allLists = JSON.parse(localStorage.getItem(listsKey));
 
     listTitle.innerHTML = allLists[listIndex].name;
 
@@ -39,7 +46,7 @@
             done: false 
         });
         
-        localStorage.setItem("lists", JSON.stringify(allLists));
+        localStorage.setItem(listsKey, JSON.stringify(allLists));
         taskInput.value = "";
         location.reload(); 
     };
@@ -69,7 +76,7 @@
         } else {
             allLists[listIndex].tasks[index].done = true;
         }
-        localStorage.setItem("lists", JSON.stringify(allLists));
+        localStorage.setItem(listsKey, JSON.stringify(allLists));
         location.reload();
     }
 
@@ -77,14 +84,14 @@
         var newText = prompt("Change task to:", allLists[listIndex].tasks[index].text);
         if (newText != null) {
             allLists[listIndex].tasks[index].text = newText;
-            localStorage.setItem("lists", JSON.stringify(allLists));
+            localStorage.setItem(listsKey, JSON.stringify(allLists));
             location.reload();
         }
     }
 
     function deleteTask(index) {
         allLists[listIndex].tasks.splice(index, 1);
-        localStorage.setItem("lists", JSON.stringify(allLists));
+        localStorage.setItem(listsKey, JSON.stringify(allLists));
         location.reload();
     }
     </script>

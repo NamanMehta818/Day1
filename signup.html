@@ -85,6 +85,16 @@
             return hasCapital && hasSpecial && hasNum;
         }
 
+        function getUsers() {
+            var usersText = localStorage.getItem("users");
+
+            if (usersText === null) {
+                return [];
+            }
+
+            return JSON.parse(usersText);
+        }
+
         signupForm.addEventListener("submit", function(e) {
             e.preventDefault();
 
@@ -96,10 +106,28 @@
                 return;
             }
 
+            var users = getUsers();
+
+            var alreadyExists = false;
+            for (var i = 0; i < users.length; i++) {
+                if (users[i].username === username) {
+                    alreadyExists = true;
+                }
+            }
+
+            if (alreadyExists) {
+                alert("an account with that email already exists");
+                return;
+            }
+
             const hashedPassword = dcodeIO.bcrypt.hashSync(password, 10);
 
-            localStorage.setItem("username", username);
-            localStorage.setItem("password", hashedPassword);
+            users.push({
+                username: username,
+                password: hashedPassword
+            });
+
+            localStorage.setItem("users", JSON.stringify(users));
 
             alert("account created");
 
