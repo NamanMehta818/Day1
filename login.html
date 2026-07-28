@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
+     <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
 </head>
 <body class="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-400 via-purple-700 to-blue-400">
 
@@ -70,12 +71,14 @@
                 alert("create an account first");
                 return;
             }
+            const isPasswordMatch = dcodeIO.bcrypt.compareSync(enteredPassword, savedPassword);
 
-            if (enteredUsername === savedUsername &&
-                enteredPassword === savedPassword) {
+            if (enteredUsername === savedUsername && isPasswordMatch) {
 
                 sessionStorage.setItem("loggedIn", "true");
+                loggedIn = true;
                 window.location.href = "lists.html";
+
 
             } else {
 
