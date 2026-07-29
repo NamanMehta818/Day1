@@ -9,6 +9,8 @@
 </head>
 <body class="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-400 via-purple-700 to-blue-400">
 
+    <div id="notification" class="hidden fixed top-4 right-4 px-4 py-2 rounded shadow text-white"></div>
+
     <div class="flex w-11/12 max-w-4xl h-[650px] bg-white rounded-2xl overflow-hidden shadow-2xl">
 
         <div class="flex-1 bg-purple-800 flex flex-col items-center justify-center p-8">
@@ -26,9 +28,10 @@
                 <input type="email" id="username" required class="border rounded w-full p-2 mb-4">
 
                 <label for="password" class="block mb-1">Password:</label>
-                <input type="password" id="password" required class="border rounded w-full p-2 mb-4">
-
-                <button type="button" id="togglePassword">Show</button>
+                <div class="flex mb-4">
+                    <input type="password" id="password" required class="border rounded w-full p-2">
+                    <button type="button" id="togglePassword" class="border rounded px-3 ml-2">Show</button>
+                </div>
 
                 <button type="submit" class="w-full bg-purple-800 text-white font-semibold rounded p-3">Login</button>
 
@@ -36,9 +39,7 @@
 
             <a href="forgot_password.html" class="block mt-4">Forgot Password?</a>
 
-            <button type="button" onclick="window.location.href='signup.html'" class="border rounded w-full p-2 mt-4">
-                Create an Account
-            </button>
+            <button type="button" onclick="window.location.href='signup.html'" class="border rounded w-full p-2 mt-4"> Create Account</button>
         </div>
 
     </div>
@@ -59,6 +60,22 @@
                 }
             });
 
+        function showNotification(message, isError) {
+            var box = document.getElementById("notification");
+
+            box.textContent = message;
+
+            if (isError) {
+                box.className = "fixed top-4 right-4 px-4 py-2 rounded shadow text-white bg-red-500";
+            } else {
+                box.className = "fixed top-4 right-4 px-4 py-2 rounded shadow text-white bg-green-500";
+            }
+
+            setTimeout(function() {
+                box.className = "hidden";
+            }, 2500);
+        }
+
         function getUsers() {
             var usersText = localStorage.getItem("users");
 
@@ -78,7 +95,7 @@
             var users = getUsers();
 
             if (users.length === 0) {
-                alert("create an account first");
+                showNotification("create an account first", true);
                 return;
             }
 
@@ -91,7 +108,7 @@
             }
 
             if (matchedUser === null) {
-                alert("incorrect username/password.");
+                showNotification("incorrect username/password.", true);
                 return;
             }
 
@@ -102,11 +119,16 @@
                 sessionStorage.setItem("loggedIn", "true");
                 sessionStorage.setItem("currentUser", matchedUser.username);
                 loggedIn = true;
-                window.location.href = "lists.html";
+
+                showNotification("login successful", false);
+
+                setTimeout(function() {
+                    window.location.href = "lists.html";
+                }, 1000);
 
             } else {
 
-                alert("incorrect username/password.");
+                showNotification("incorrect username/password.", true);
 
             }
         });
