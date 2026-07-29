@@ -2,24 +2,64 @@
 <html>
 <head>
     <title>My Lists</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        };
+    </script>
 </head>
-<body>
+<body class="bg-gray-100 dark:bg-gray-900 text-black dark:text-white min-h-screen p-8">
 
-    <h1>My Lists</h1>
+    <button id="signOutBtn" class="absolute top-4 right-4 border rounded px-3 py-1 bg-white dark:bg-gray-800">Sign Out</button>
 
-    <input type="text" id="listInput">
-    <button id="addListBtn">Add List</button>
+    <button id="darkModeBtn" class="fixed bottom-4 left-4 border rounded px-3 py-1 bg-white dark:bg-gray-800">Dark Mode</button>
+
+    <h1 class="text-3xl font-bold mb-6">My Lists</h1>
+
+    <div class="flex gap-2 mb-6">
+        <input type="text" id="listInput" class="border rounded p-2 flex-1 text-black">
+        <button id="addListBtn" class="bg-purple-800 text-white px-4 py-2 rounded">Add List</button>
+    </div>
 
     <ul id="listOfLists"></ul>
 
     <script>
+    if (sessionStorage.getItem("loggedIn") !== "true") {
+        window.location.href = "login.html";
+    } else {
+
+    var currentUser = sessionStorage.getItem("currentUser");
+    var dataKey = "data_" + currentUser;
+
     var listInput = document.getElementById("listInput");
     var addListBtn = document.getElementById("addListBtn");
     var listOfLists = document.getElementById("listOfLists");
+    var signOutBtn = document.getElementById("signOutBtn");
+    var darkModeBtn = document.getElementById("darkModeBtn");
 
-    var lists = JSON.parse(localStorage.getItem("lists"));
-    if (lists == null) {
-        lists = [];
+    var data = JSON.parse(localStorage.getItem(dataKey));
+    if (data == null) {
+        data = { lists: {} };
+    }
+
+    function generateId(existingIds) {
+        var newId = Math.floor(Math.random() * 1000000000).toString();
+
+        while (existingIds[newId] != null) {
+            newId = Math.floor(Math.random() * 1000000000).toString();
+        }
+
+        return newId;
+    }
+
+    function renderLists() {
+        var listHtml = "";
+        for (var listId in data.lists) {
+            var currentList = data.lists[listId];
+            listHtml += "<li class='bg-white dark:bg-gray-800 rounded shadow p-4 mb-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700' onclick=\"goToList('" + listId + "')\">" + currentList.name + "</li>";
+        }
+        listOfLists.innerHTML = listHtml;
     }
 
     addListBtn.onclick = function() {
@@ -29,25 +69,56 @@
             return;
         }
 
-        lists.push({ 
-            name: name, 
-            tasks: [] 
-        });
-        
-        localStorage.setItem("lists", JSON.stringify(lists));
+        var newId = generateId(data.lists);
+
+        data.lists[newId] = {
+            id: newId,
+            name: name
+        };
+
+        data[newId] = {
+            id: newId,
+            name: name,
+            tasks: {}
+        };
+
+        localStorage.setItem(dataKey, JSON.stringify(data));
         listInput.value = "";
-        location.reload();
+        renderLists();
     };
 
-    var listHtml = "";
-    for (var i = 0; i < lists.length; i++) {
-        var currentList = lists[i];
-        listHtml += "<li style='cursor: pointer;' onclick='goToList(" + i + ")'>" + currentList.name + "</li>";
-    }
-    listOfLists.innerHTML = listHtml;
+    signOutBtn.onclick = function() {
+        sessionStorage.removeItem("loggedIn");
+        sessionStorage.removeItem("currentUser");
+        window.location.href = "login.html";
+    };
 
-    function goToList(index) {
-        window.location.href = "tasks.html?list=" + index;
+    var darkModeOn = localStorage.getItem("darkMode") === "true";
+
+    if (darkModeOn) {
+        document.documentElement.classList.add("dark");
+        darkModeBtn.textContent = "Light Mode";
+    }
+
+    darkModeBtn.onclick = function() {
+        document.documentElement.classList.toggle("dark");
+
+        darkModeOn = document.documentElement.classList.contains("dark");
+        localStorage.setItem("darkMode", darkModeOn);
+
+        if (darkModeOn) {
+            darkModeBtn.textContent = "Light Mode";
+        } else {
+            darkModeBtn.textContent = "Dark Mode";
+        }
+    };
+
+    renderLists();
+
+    function goToList(listId) {
+        window.location.href = "tasks.html?list=" + listId;
+    }
+
     }
     </script>
 

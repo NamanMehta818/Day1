@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
+     <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
 </head>
 <body class="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-400 via-purple-700 to-blue-400">
+
+    <div id="notification" class="hidden fixed top-4 right-4 px-4 py-2 rounded shadow text-white"></div>
 
     <div class="flex w-11/12 max-w-4xl h-[650px] bg-white rounded-2xl overflow-hidden shadow-2xl">
 
@@ -25,9 +28,10 @@
                 <input type="email" id="username" required class="border rounded w-full p-2 mb-4">
 
                 <label for="password" class="block mb-1">Password:</label>
-                <input type="password" id="password" required class="border rounded w-full p-2 mb-4">
-
-                <button type="button" id="togglePassword">Show</button>
+                <div class="flex mb-4">
+                    <input type="password" id="password" required class="border rounded w-full p-2">
+                    <button type="button" id="togglePassword" class="border rounded px-3 ml-2">Show</button>
+                </div>
 
                 <button type="submit" class="w-full bg-purple-800 text-white font-semibold rounded p-3">Login</button>
 
@@ -35,9 +39,7 @@
 
             <a href="forgot_password.html" class="block mt-4">Forgot Password?</a>
 
-            <button type="button" onclick="window.location.href='signup.html'" class="border rounded w-full p-2 mt-4">
-                Create an Account
-            </button>
+            <button type="button" onclick="window.location.href='signup.html'" class="border rounded w-full p-2 mt-4"> Create Account</button>
         </div>
 
     </div>
@@ -51,11 +53,32 @@
                 if (passwordInput.type === "password") {
                     passwordInput.type = "text";
                     toggleButton.textContent = "Hide";
-                } else {
+                }
+                else {
                     passwordInput.type = "password";
                     toggleButton.textContent = "Show";
                 }
             });
+
+        function showNotification(message) {
+            var box = document.getElementById("notification");
+
+            box.textContent = message;
+            box.className = "fixed top-4 right-4 px-4 py-2 rounded shadow text-white bg-gray-700";
+
+            setTimeout(function() {
+                box.className = "hidden";
+            }, 2500);
+        }
+        function getUsers() {
+            var usersText = localStorage.getItem("users");
+
+            if (usersText === null) {
+                return [];
+            }
+
+            return JSON.parse(usersText);
+        }
 
         loginForm.addEventListener("submit", function(e) {
             e.preventDefault();
@@ -63,23 +86,43 @@
             const enteredUsername = document.getElementById("username").value.trim();
             const enteredPassword = passwordInput.value;
 
-            const savedUsername = localStorage.getItem("username");
-            const savedPassword = localStorage.getItem("password");
+            var users = getUsers();
 
-            if (!savedUsername || !savedPassword) {
-                alert("create an account first");
+            if (users.length === 0) {
+                showNotification("create an account first", true);
                 return;
             }
 
-            if (enteredUsername === savedUsername &&
-                enteredPassword === savedPassword) {
+            var matchedUser = null;
+
+            for (var i = 0; i < users.length; i++) {
+                if (users[i].username === enteredUsername) {
+                    matchedUser = users[i];
+                }
+            }
+
+            if (matchedUser === null) {
+                showNotification("incorrect username/password.", true);
+                return;
+            }
+
+            const isPasswordMatch = dcodeIO.bcrypt.compareSync(enteredPassword, matchedUser.password);
+
+            if (isPasswordMatch) {
 
                 sessionStorage.setItem("loggedIn", "true");
-                window.location.href = "lists.html";
+                sessionStorage.setItem("currentUser", matchedUser.username);
+                loggedIn = true;
+
+                showNotification("login successful", false);
+
+                setTimeout(function() {
+                    window.location.href = "lists.html";
+                }, 1000);
 
             } else {
 
-                alert("incorrect username/password.");
+                showNotification("incorrect username/password.", true);
 
             }
         });

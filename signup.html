@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
 </head>
 <body class="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-400 via-purple-700 to-blue-400">
+
+    <div id="notification" class="hidden fixed top-4 right-4 px-4 py-2 rounded shadow text-white"></div>
 
     <div class="flex w-11/12 max-w-4xl h-[650px] bg-white rounded-2xl overflow-hidden shadow-2xl">
 
@@ -24,9 +27,11 @@
                 <input type="email" id="username" required class="border rounded w-full p-2 mb-4">
 
                 <label for="password" class="block mb-1">Password:</label>
-                <input type="password" id="password" required class="border rounded w-full p-2 mb-1">
-                <p class="text-xs text-gray-500 mb-4">Must be 8+ characters, include 1 capital letter and 1 special character</p>
-                <button type="button" id="togglePassword">Show</button>
+                <div class="flex mb-1">
+                    <input type="password" id="password" required class="border rounded w-full p-2">
+                    <button type="button" id="togglePassword" class="border rounded px-3 ml-2">Show</button>
+                </div>
+                <p class="text-xs text-gray-500 mb-4">Must be 8+ characters, have 1 capital letter and 1 special character</p>
 
                 <button type="submit" class="w-full bg-purple-800 text-white font-semibold rounded p-3">Create Account</button>
 
@@ -53,6 +58,17 @@
                     toggleButton.textContent = "Show";
                 }
             });
+
+        function showNotification(message) {
+            var box = document.getElementById("notification");
+
+            box.textContent = message;
+            box.className = "fixed top-4 right-4 px-4 py-2 rounded shadow text-white bg-gray-700";
+
+            setTimeout(function() {
+                box.className = "hidden";
+            }, 2500);
+        }
 
         function isValidPassword(password) {
             if (password.length < 8) {
@@ -84,6 +100,16 @@
             return hasCapital && hasSpecial && hasNum;
         }
 
+        function getUsers() {
+            var usersText = localStorage.getItem("users");
+
+            if (usersText === null) {
+                return [];
+            }
+
+            return JSON.parse(usersText);
+        }
+
         signupForm.addEventListener("submit", function(e) {
             e.preventDefault();
 
@@ -91,16 +117,38 @@
             const password = document.getElementById("password").value;
 
             if (!isValidPassword(password)) {
-                alert("password must be at least 8 characters, have 1 capital letter and 1 special character");
+                showNotification("password must be at least 8 characters, have 1 capital letter and 1 special character");
                 return;
             }
 
-            localStorage.setItem("username", username);
-            localStorage.setItem("password", password);
+            var users = getUsers();
 
-            alert("account created");
+            var alreadyExists = false;
+            for (var i = 0; i < users.length; i=+i+1) {
+                if (users[i].username === username) {
+                    alreadyExists = true;
+                }
+            }
 
-            window.location.href = "login.html";
+            if (alreadyExists) {
+                showNotification("an account with that email already exists");
+                return;
+            }
+
+            const hashedPassword = dcodeIO.bcrypt.hashSync(password, 10);
+
+            users.push({
+                username: username,
+                password: hashedPassword
+            });
+
+            localStorage.setItem("users", JSON.stringify(users));
+
+            showNotification("account created");
+
+            setTimeout(function() {
+                window.location.href = "login.html";
+            }, 1500);
         });
     </script>
 

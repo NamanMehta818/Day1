@@ -2,90 +2,148 @@
 <html>
 <head>
     <title>My Tasks</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        };
+    </script>
 </head>
-<body>
+<body class="bg-gray-100 dark:bg-gray-900 text-black dark:text-white min-h-screen p-8">
 
-    <a href="lists.html"><button>Go Back</button></a>
+    <a href="lists.html"><button class="border rounded px-3 py-1 bg-white dark:bg-gray-800 mb-4">Go Back</button></a>
+
+    <button id="darkModeBtn" class="fixed bottom-4 left-4 border rounded px-3 py-1 bg-white dark:bg-gray-800">Dark Mode</button>
     
-    <h1 id="listTitle">My Task List</h1>
+    <h1 id="listTitle" class="text-3xl font-bold mb-6">My Task List</h1>
     
-    <input type="text" id="taskInput">
-    <button id="addTaskBtn">Add Task</button>
+    <div class="flex gap-2 mb-6">
+        <input type="text" id="taskInput" class="border rounded p-2 flex-1 text-black">
+        <button id="addTaskBtn" class="bg-purple-800 text-white px-4 py-2 rounded">Add Task</button>
+    </div>
     
     <ul id="taskList"></ul>
 
     <script>
+    if (sessionStorage.getItem("loggedIn") !== "true") {
+        window.location.href = "login.html";
+    } 
+    else {
+
+    var currentUser = sessionStorage.getItem("currentUser");
+    var dataKey = "data_" + currentUser;
+
     var urlParams = new URLSearchParams(window.location.search);
-    var listIndex = urlParams.get("list");
+    var listId = urlParams.get("list");
 
     var listTitle = document.getElementById("listTitle");
     var taskInput = document.getElementById("taskInput");
     var addTaskBtn = document.getElementById("addTaskBtn");
     var taskList = document.getElementById("taskList");
+    var darkModeBtn = document.getElementById("darkModeBtn");
 
-    var allLists = JSON.parse(localStorage.getItem("lists"));
+    var data = JSON.parse(localStorage.getItem(dataKey));
+    var currentList = data[listId];
 
-    listTitle.innerHTML = allLists[listIndex].name;
+    listTitle.innerHTML = currentList.name;
+
+    function generateId(existingIds) {
+        var newId = Math.floor(Math.random() * 1000000000).toString();
+
+        while (existingIds[newId] != null) {
+            newId = Math.floor(Math.random() * 1000000000).toString();
+        }
+
+        return newId;
+    }
+
+    function renderTasks() {
+        var cardClass = "bg-white dark:bg-gray-800 rounded shadow p-4 mb-2 flex items-center justify-between";
+        var listHtml = "";
+
+        for (var taskId in currentList.tasks) {
+            var task = currentList.tasks[taskId];
+            if (task.IsCompleted == false) {
+                listHtml += "<li class='" + cardClass + "'><span><input type='checkbox' onclick=\"toggleTask('" + taskId + "')\"> " + task.name + "</span><span><button class='bg-blue-500 text-white px-2 py-1 rounded text-sm' onclick=\"editTask('" + taskId + "')\">Edit</button> <button class='bg-red-500 text-white px-2 py-1 rounded text-sm' onclick=\"deleteTask('" + taskId + "')\">Delete</button></span></li>";
+            }
+        }
+
+        for (var taskId in currentList.tasks) {
+            var task = currentList.tasks[taskId];
+            if (task.IsCompleted == true) {
+                listHtml += "<li class='" + cardClass + "'><span><input type='checkbox' checked onclick=\"toggleTask('" + taskId + "')\"> <del>" + task.name + "</del></span><span><button class='bg-blue-500 text-white px-2 py-1 rounded text-sm' onclick=\"editTask('" + taskId + "')\">Edit</button> <button class='bg-red-500 text-white px-2 py-1 rounded text-sm' onclick=\"deleteTask('" + taskId + "')\">Delete</button></span></li>";
+            }
+        }
+
+        taskList.innerHTML = listHtml;
+    }
 
     addTaskBtn.onclick = function() {
         var text = taskInput.value;
-        
+
         if (text == "") {
             return;
         }
 
-        allLists[listIndex].tasks.push({ 
-            text: text, 
-            done: false 
-        });
-        
-        localStorage.setItem("lists", JSON.stringify(allLists));
+        var newTaskId = generateId(currentList.tasks);
+
+        currentList.tasks[newTaskId] = {
+            name: text,
+            IsCompleted: false
+        };
+
+        localStorage.setItem(dataKey, JSON.stringify(data));
         taskInput.value = "";
-        location.reload(); 
+        renderTasks();
     };
 
-    var currentTasks = allLists[listIndex].tasks;
-    var listHtml = "";
-
-    for (var i = 0; i < currentTasks.length; i++) {
-        var task = currentTasks[i];
-        if (task.done == false) {
-            listHtml += "<li><input type='checkbox' onclick='toggleTask(" + i + ")'> " + task.text + " <button onclick='editTask(" + i + ")'>Edit</button> <button onclick='deleteTask(" + i + ")'>Delete</button></li>";
-        }
-    }
-
-    for (var i = 0; i < currentTasks.length; i++) {
-        var task = currentTasks[i];
-        if (task.done == true) {
-            listHtml += "<li><input type='checkbox' checked onclick='toggleTask(" + i + ")'> <del>" + task.text + "</del> <button onclick='editTask(" + i + ")'>Edit</button> <button onclick='deleteTask(" + i + ")'>Delete</button></li>";
-        }
-    }
-    
-    taskList.innerHTML = listHtml;
-
-    function toggleTask(index) {
-        if (allLists[listIndex].tasks[index].done == true) {
-            allLists[listIndex].tasks[index].done = false;
+    function toggleTask(taskId) {
+        if (currentList.tasks[taskId].IsCompleted == true) {
+            currentList.tasks[taskId].IsCompleted = false;
         } else {
-            allLists[listIndex].tasks[index].done = true;
+            currentList.tasks[taskId].IsCompleted = true;
         }
-        localStorage.setItem("lists", JSON.stringify(allLists));
-        location.reload();
+        localStorage.setItem(dataKey, JSON.stringify(data));
+        renderTasks();
     }
 
-    function editTask(index) {
-        var newText = prompt("Change task to:", allLists[listIndex].tasks[index].text);
+    function editTask(taskId) {
+        var newText = prompt("Change task to:", currentList.tasks[taskId].name);
         if (newText != null) {
-            allLists[listIndex].tasks[index].text = newText;
-            localStorage.setItem("lists", JSON.stringify(allLists));
-            location.reload();
+            currentList.tasks[taskId].name = newText;
+            localStorage.setItem(dataKey, JSON.stringify(data));
+            renderTasks();
         }
     }
 
-    function deleteTask(index) {
-        allLists[listIndex].tasks.splice(index, 1);
-        localStorage.setItem("lists", JSON.stringify(allLists));
-        location.reload();
+    function deleteTask(taskId) {
+        delete currentList.tasks[taskId];
+        localStorage.setItem(dataKey, JSON.stringify(data));
+        renderTasks();
+    }
+
+    var darkModeOn = localStorage.getItem("darkMode") === "true";
+
+    if (darkModeOn) {
+        document.documentElement.classList.add("dark");
+        darkModeBtn.textContent = "Light Mode";
+    }
+
+    darkModeBtn.onclick = function() {
+        document.documentElement.classList.toggle("dark");
+
+        darkModeOn = document.documentElement.classList.contains("dark");
+        localStorage.setItem("darkMode", darkModeOn);
+
+        if (darkModeOn) {
+            darkModeBtn.textContent = "Light Mode";
+        } else {
+            darkModeBtn.textContent = "Dark Mode";
+        }
+    };
+
+    renderTasks();
+
     }
     </script>
 
