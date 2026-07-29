@@ -60,22 +60,16 @@
                 }
             });
 
-        function showNotification(message, isError) {
+        function showNotification(message) {
             var box = document.getElementById("notification");
 
             box.textContent = message;
-
-            if (isError) {
-                box.className = "fixed top-4 right-4 px-4 py-2 rounded shadow text-white bg-red-500";
-            } else {
-                box.className = "fixed top-4 right-4 px-4 py-2 rounded shadow text-white bg-green-500";
-            }
+            box.className = "fixed top-4 right-4 px-4 py-2 rounded shadow text-white bg-gray-700";
 
             setTimeout(function() {
                 box.className = "hidden";
             }, 2500);
         }
-
         function getUsers() {
             var usersText = localStorage.getItem("users");
 
