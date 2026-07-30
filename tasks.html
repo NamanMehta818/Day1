@@ -9,143 +9,299 @@
         };
     </script>
 </head>
+
 <body class="bg-gray-100 dark:bg-gray-900 text-black dark:text-white min-h-screen p-8">
 
     <a href="lists.html"><button class="border rounded px-3 py-1 bg-white dark:bg-gray-800 mb-4">Go Back</button></a>
 
     <button id="darkModeBtn" class="fixed bottom-4 left-4 border rounded px-3 py-1 bg-white dark:bg-gray-800">Dark Mode</button>
-    
+
     <h1 id="listTitle" class="text-3xl font-bold mb-6">My Task List</h1>
-    
+
     <div class="flex gap-2 mb-6">
         <input type="text" id="taskInput" class="border rounded p-2 flex-1 text-black">
         <button id="addTaskBtn" class="bg-purple-800 text-white px-4 py-2 rounded">Add Task</button>
     </div>
-    
+
+    <div class="flex gap-2 mb-4">
+        <input type="text" id="searchInput" placeholder="Search tasks" class="border rounded p-2 w-1/2 text-black" onkeyup="renderTasks()">
+        <select id="sortInput" class="border rounded p-2 text-black" onchange="renderTasks()">
+            <option value="date">Date (Closest)</option>
+            <option value="name">Name (A-Z)</option>
+        </select>
+    </div>
+
     <ul id="taskList"></ul>
 
-    <script>
-    if (sessionStorage.getItem("loggedIn") !== "true") {
-        window.location.href = "login.html";
-    } 
-    else {
+    <input type="date" id="hiddenDateInput" class="hidden">
 
-    var currentUser = sessionStorage.getItem("currentUser");
-    var dataKey = "data_" + currentUser;
 
-    var urlParams = new URLSearchParams(window.location.search);
-    var listId = urlParams.get("list");
+<script>
 
-    var listTitle = document.getElementById("listTitle");
-    var taskInput = document.getElementById("taskInput");
-    var addTaskBtn = document.getElementById("addTaskBtn");
-    var taskList = document.getElementById("taskList");
-    var darkModeBtn = document.getElementById("darkModeBtn");
+if (sessionStorage.getItem("loggedIn") !== "true") {
+    window.location.href = "login.html";
+}
+else {
 
-    var data = JSON.parse(localStorage.getItem(dataKey));
-    var currentList = data[listId];
+var currentUser = sessionStorage.getItem("currentUser");
+var dataKey = "data_" + currentUser;
 
-    listTitle.innerHTML = currentList.name;
+var urlParams = new URLSearchParams(window.location.search);
+var listId = urlParams.get("list");
 
-    function generateId(existingIds) {
-        var newId = Math.floor(Math.random() * 1000000000).toString();
+var listTitle = document.getElementById("listTitle");
+var taskInput = document.getElementById("taskInput");
+var addTaskBtn = document.getElementById("addTaskBtn");
+var taskList = document.getElementById("taskList");
+var darkModeBtn = document.getElementById("darkModeBtn");
+var hiddenDateInput = document.getElementById("hiddenDateInput");
 
-        while (existingIds[newId] != null) {
-            newId = Math.floor(Math.random() * 1000000000).toString();
-        }
+var data = JSON.parse(localStorage.getItem(dataKey));
+var currentList = data.lists[listId];
 
-        return newId;
+listTitle.innerHTML = currentList.name;
+
+
+function generateId(existingIds) {
+
+    var newId = Math.floor(Math.random() * 1000000000).toString();
+
+    while (existingIds[newId] != null) {
+        newId = Math.floor(Math.random() * 1000000000).toString();
     }
 
-    function renderTasks() {
-        var cardClass = "bg-white dark:bg-gray-800 rounded shadow p-4 mb-2 flex items-center justify-between";
-        var listHtml = "";
+    return newId;
+}
 
-        for (var taskId in currentList.tasks) {
-            var task = currentList.tasks[taskId];
-            if (task.IsCompleted == false) {
-                listHtml += "<li class='" + cardClass + "'><span><input type='checkbox' onclick=\"toggleTask('" + taskId + "')\"> " + task.name + "</span><span><button class='bg-blue-500 text-white px-2 py-1 rounded text-sm' onclick=\"editTask('" + taskId + "')\">Edit</button> <button class='bg-red-500 text-white px-2 py-1 rounded text-sm' onclick=\"deleteTask('" + taskId + "')\">Delete</button></span></li>";
-            }
+function renderTasks() {
+
+    var search = document.getElementById("searchInput").value.toLowerCase();
+    var sort = document.getElementById("sortInput").value;
+
+    var cardClass = "bg-white dark:bg-gray-800 rounded shadow p-4 mb-2 flex items-center justify-between";
+    var listHtml = "";
+
+    var taskArray = [];
+
+    for (var taskId in currentList.tasks) {
+
+        var task = currentList.tasks[taskId];
+
+        if (task.name.toLowerCase().includes(search)) {
+
+            taskArray.push({
+                id: taskId,
+                task: task
+            });
+
         }
-
-        for (var taskId in currentList.tasks) {
-            var task = currentList.tasks[taskId];
-            if (task.IsCompleted == true) {
-                listHtml += "<li class='" + cardClass + "'><span><input type='checkbox' checked onclick=\"toggleTask('" + taskId + "')\"> <del>" + task.name + "</del></span><span><button class='bg-blue-500 text-white px-2 py-1 rounded text-sm' onclick=\"editTask('" + taskId + "')\">Edit</button> <button class='bg-red-500 text-white px-2 py-1 rounded text-sm' onclick=\"deleteTask('" + taskId + "')\">Delete</button></span></li>";
-            }
-        }
-
-        taskList.innerHTML = listHtml;
     }
 
-    addTaskBtn.onclick = function() {
-        var text = taskInput.value;
 
-        if (text == "") {
-            return;
+    if (sort == "name") {
+
+        taskArray.sort(function(a,b) {
+
+            return a.task.name.localeCompare(b.task.name);
+
+        });
+
+    }
+
+
+    if (sort == "date") {
+
+        taskArray.sort(function(a,b) {
+
+            if (a.task.date == "") {
+                return 1;
+            }
+
+            if (b.task.date == "") {
+                return -1;
+            }
+
+            return new Date(a.task.date) - new Date(b.task.date);
+
+        });
+
+    }
+
+    for (var i = 0; i < taskArray.length; i++) {
+
+        var taskId = taskArray[i].id;
+        var task = taskArray[i].task;
+
+        if (task.IsCompleted == false) {
+
+            var dateText = "";
+
+            if (task.date) {
+                dateText = " <span class='text-xs text-gray-500 dark:text-gray-400'>(" + task.date + ")</span>";
+            }
+
+            listHtml += "<li class='" + cardClass + "'><span><input type='checkbox' onclick=\"toggleTask('" + taskId + "')\"> " + task.name + dateText + "</span><span><button class='bg-yellow-500 text-white px-2 py-1 rounded text-sm' onclick=\"setTaskDate('" + taskId + "')\">Set Date</button> <button class='bg-blue-500 text-white px-2 py-1 rounded text-sm' onclick=\"editTask('" + taskId + "')\">Edit</button> <button class='bg-red-500 text-white px-2 py-1 rounded text-sm' onclick=\"deleteTask('" + taskId + "')\">Delete</button></span></li>";
+
         }
 
-        var newTaskId = generateId(currentList.tasks);
+    }
+    for (var i = 0; i < taskArray.length; i++) {
 
-        currentList.tasks[newTaskId] = {
-            name: text,
-            IsCompleted: false
-        };
+        var taskId = taskArray[i].id;
+        var task = taskArray[i].task;
 
-        localStorage.setItem(dataKey, JSON.stringify(data));
-        taskInput.value = "";
-        renderTasks();
+        if (task.IsCompleted == true) {
+
+            var dateText = "";
+
+            if (task.date) {
+                dateText = " <span class='text-xs text-gray-500 dark:text-gray-400'>(" + task.date + ")</span>";
+            }
+
+            listHtml += "<li class='" + cardClass + "'><span><input type='checkbox' checked onclick=\"toggleTask('" + taskId + "')\"> <del>" + task.name + "</del>" + dateText + "</span><span><button class='bg-yellow-500 text-white px-2 py-1 rounded text-sm' onclick=\"setTaskDate('" + taskId + "')\">Set Date</button> <button class='bg-blue-500 text-white px-2 py-1 rounded text-sm' onclick=\"editTask('" + taskId + "')\">Edit</button> <button class='bg-red-500 text-white px-2 py-1 rounded text-sm' onclick=\"deleteTask('" + taskId + "')\">Delete</button></span></li>";
+
+        }
+
+    }
+    taskList.innerHTML = listHtml;
+
+}
+
+addTaskBtn.onclick = function() {
+
+    var text = taskInput.value;
+
+    if (text == "") {
+        return;
+    }
+
+    var newTaskId = generateId(currentList.tasks);
+
+    currentList.tasks[newTaskId] = {
+
+        name: text,
+        IsCompleted: false,
+        date: ""
+
     };
 
-    function toggleTask(taskId) {
-        if (currentList.tasks[taskId].IsCompleted == true) {
-            currentList.tasks[taskId].IsCompleted = false;
-        } else {
-            currentList.tasks[taskId].IsCompleted = true;
-        }
-        localStorage.setItem(dataKey, JSON.stringify(data));
-        renderTasks();
-    }
 
-    function editTask(taskId) {
-        var newText = prompt("Change task to:", currentList.tasks[taskId].name);
-        if (newText != null) {
-            currentList.tasks[taskId].name = newText;
-            localStorage.setItem(dataKey, JSON.stringify(data));
-            renderTasks();
-        }
-    }
+    localStorage.setItem(dataKey, JSON.stringify(data));
 
-    function deleteTask(taskId) {
-        delete currentList.tasks[taskId];
-        localStorage.setItem(dataKey, JSON.stringify(data));
-        renderTasks();
-    }
-
-    var darkModeOn = localStorage.getItem("darkMode") === "true";
-
-    if (darkModeOn) {
-        document.documentElement.classList.add("dark");
-        darkModeBtn.textContent = "Light Mode";
-    }
-
-    darkModeBtn.onclick = function() {
-        document.documentElement.classList.toggle("dark");
-
-        darkModeOn = document.documentElement.classList.contains("dark");
-        localStorage.setItem("darkMode", darkModeOn);
-
-        if (darkModeOn) {
-            darkModeBtn.textContent = "Light Mode";
-        } else {
-            darkModeBtn.textContent = "Dark Mode";
-        }
-    };
+    taskInput.value = "";
 
     renderTasks();
 
-    }
-    </script>
+};
 
+function toggleTask(taskId) {
+
+    if (currentList.tasks[taskId].IsCompleted == true) {
+
+        currentList.tasks[taskId].IsCompleted = false;
+
+    } else {
+
+        currentList.tasks[taskId].IsCompleted = true;
+
+    }
+
+
+    localStorage.setItem(dataKey, JSON.stringify(data));
+
+    renderTasks();
+
+}
+
+function editTask(taskId) {
+
+    var newText = prompt("Change task to:", currentList.tasks[taskId].name);
+
+
+    if (newText != null) {
+
+        currentList.tasks[taskId].name = newText;
+
+        localStorage.setItem(dataKey, JSON.stringify(data));
+
+        renderTasks();
+
+    }
+
+}
+
+var taskIdBeingDated = null;
+
+function setTaskDate(taskId) {
+
+    taskIdBeingDated = taskId;
+
+    hiddenDateInput.value = currentList.tasks[taskId].date || "";
+
+    hiddenDateInput.showPicker();
+
+}
+
+hiddenDateInput.addEventListener("change", function() {
+
+    if (taskIdBeingDated != null) {
+
+        currentList.tasks[taskIdBeingDated].date = hiddenDateInput.value;
+
+        localStorage.setItem(dataKey, JSON.stringify(data));
+
+        renderTasks();
+
+        taskIdBeingDated = null;
+
+    }
+
+});
+
+function deleteTask(taskId) {
+
+    delete currentList.tasks[taskId];
+
+    localStorage.setItem(dataKey, JSON.stringify(data));
+
+    renderTasks();
+
+}
+
+var darkModeOn = localStorage.getItem("darkMode") === "true";
+
+if (darkModeOn) {
+
+    document.documentElement.classList.add("dark");
+
+    darkModeBtn.textContent = "Light Mode";
+
+}
+
+darkModeBtn.onclick = function() {
+
+    document.documentElement.classList.toggle("dark");
+
+
+    darkModeOn = document.documentElement.classList.contains("dark");
+
+    localStorage.setItem("darkMode", darkModeOn);
+
+    if (darkModeOn) {
+
+        darkModeBtn.textContent = "Light Mode";
+
+    } else {
+
+        darkModeBtn.textContent = "Dark Mode";
+
+    }
+
+};
+
+renderTasks();
+}
+
+</script>
 </body>
 </html>
