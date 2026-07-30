@@ -22,6 +22,10 @@
         <button id="addListBtn" class="bg-purple-800 text-white px-4 py-2 rounded">Add List</button>
     </div>
 
+    <div class="flex gap-2 mb-4">
+        <input type="text" id="searchInput" placeholder="Search tasks" class="border rounded p-2 w-1/2 text-black" onkeyup="renderLists()">
+    </div>
+
     <ul id="listOfLists"></ul>
 
     <script>
@@ -54,10 +58,19 @@
     }
 
     function renderLists() {
+
+        var search = document.getElementById("searchInput").value.toLowerCase();
+
         var listHtml = "";
         for (var listId in data.lists) {
             var currentList = data.lists[listId];
-            listHtml += "<li class='bg-white dark:bg-gray-800 rounded shadow p-4 mb-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700' onclick=\"goToList('" + listId + "')\">" + currentList.name + "</li>";
+
+            if (currentList.name.toLowerCase().includes(search)) {
+                listHtml += "<li class='bg-white dark:bg-gray-800 rounded shadow p-4 mb-2 flex items-center justify-between'>";
+                listHtml += "<span class='cursor-pointer' onclick=\"goToList('" + listId + "')\">" + currentList.name + "</span>";
+                listHtml += "<button class='bg-blue-500 text-white px-2 py-1 rounded text-sm' onclick=\"editList('" + listId + "')\">Edit</button>";
+                listHtml += "</li>";
+            }
         }
         listOfLists.innerHTML = listHtml;
     }
@@ -73,11 +86,6 @@
 
         data.lists[newId] = {
             id: newId,
-            name: name
-        };
-
-        data[newId] = {
-            id: newId,
             name: name,
             tasks: {}
         };
@@ -86,6 +94,15 @@
         listInput.value = "";
         renderLists();
     };
+
+    function editList(listId) {
+        var newName = prompt("Change list name to:", data.lists[listId].name);
+        if (newName != null && newName != "") {
+            data.lists[listId].name = newName;
+            localStorage.setItem(dataKey, JSON.stringify(data));
+            renderLists();
+        }
+    }
 
     signOutBtn.onclick = function() {
         sessionStorage.removeItem("loggedIn");
