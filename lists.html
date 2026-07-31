@@ -8,30 +8,33 @@
             darkMode: 'class'
         };
     </script>
+    <script src="shared.js"></script>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-black dark:text-white min-h-screen p-8">
 
-    <button id="signOutBtn" class="absolute top-4 right-4 border rounded px-3 py-1 bg-white dark:bg-gray-800">Sign Out</button>
-
-    <button id="darkModeBtn" class="fixed bottom-4 left-4 border rounded px-3 py-1 bg-white dark:bg-gray-800">Dark Mode</button>
+    <div id="pageHeader"></div>
 
     <h1 class="text-3xl font-bold mb-6">My Lists</h1>
 
     <div class="flex gap-2 mb-6">
-        <input type="text" id="listInput" class="border rounded p-2 flex-1 text-black">
+        <input type="text" id="listInput" class="border rounded p-2 flex-1 text-black dark:text-white dark:bg-gray-800">
         <button id="addListBtn" class="bg-purple-800 text-white px-4 py-2 rounded">Add List</button>
     </div>
 
     <div class="flex gap-2 mb-4">
-        <input type="text" id="searchInput" placeholder="Search tasks" class="border rounded p-2 w-1/2 text-black" onkeyup="renderLists()">
+        <input type="text" id="searchInput" placeholder="Search lists" class="border rounded p-2 w-1/2 text-black dark:text-white dark:bg-gray-800" onkeyup="renderLists()">
     </div>
 
     <ul id="listOfLists"></ul>
+
+    <div id="pageFooter"></div>
 
     <script>
     if (sessionStorage.getItem("loggedIn") !== "true") {
         window.location.href = "login.html";
     } else {
+
+    loadHeaderFooter();
 
     var currentUser = sessionStorage.getItem("currentUser");
     var dataKey = "data_" + currentUser;
@@ -39,8 +42,6 @@
     var listInput = document.getElementById("listInput");
     var addListBtn = document.getElementById("addListBtn");
     var listOfLists = document.getElementById("listOfLists");
-    var signOutBtn = document.getElementById("signOutBtn");
-    var darkModeBtn = document.getElementById("darkModeBtn");
 
     var data = JSON.parse(localStorage.getItem(dataKey));
     if (data == null) {
@@ -61,17 +62,13 @@
 
         var search = document.getElementById("searchInput").value.toLowerCase();
 
-        var listHtml = "";
-        for (var listId in data.lists) {
+        var listHtml = Object.keys(data.lists).filter(function(listId) {
+            return data.lists[listId].name.toLowerCase().includes(search);
+        }).map(function(listId) {
             var currentList = data.lists[listId];
+            return "<li class='bg-white dark:bg-gray-800 rounded shadow p-4 mb-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700' onclick=\"goToList('" + listId + "')\">" + currentList.name + "</li>";
+        }).join("");
 
-            if (currentList.name.toLowerCase().includes(search)) {
-                listHtml += "<li class='bg-white dark:bg-gray-800 rounded shadow p-4 mb-2 flex items-center justify-between'>";
-                listHtml += "<span class='cursor-pointer' onclick=\"goToList('" + listId + "')\">" + currentList.name + "</span>";
-                listHtml += "<button class='bg-blue-500 text-white px-2 py-1 rounded text-sm' onclick=\"editList('" + listId + "')\">Edit</button>";
-                listHtml += "</li>";
-            }
-        }
         listOfLists.innerHTML = listHtml;
     }
 
@@ -95,40 +92,11 @@
         renderLists();
     };
 
-    function editList(listId) {
-        var newName = prompt("Change list name to:", data.lists[listId].name);
-        if (newName != null && newName != "") {
-            data.lists[listId].name = newName;
-            localStorage.setItem(dataKey, JSON.stringify(data));
-            renderLists();
+    listInput.addEventListener("keydown", function(e) {
+        if (e.key == "Enter") {
+            addListBtn.click();
         }
-    }
-
-    signOutBtn.onclick = function() {
-        sessionStorage.removeItem("loggedIn");
-        sessionStorage.removeItem("currentUser");
-        window.location.href = "login.html";
-    };
-
-    var darkModeOn = localStorage.getItem("darkMode") === "true";
-
-    if (darkModeOn) {
-        document.documentElement.classList.add("dark");
-        darkModeBtn.textContent = "Light Mode";
-    }
-
-    darkModeBtn.onclick = function() {
-        document.documentElement.classList.toggle("dark");
-
-        darkModeOn = document.documentElement.classList.contains("dark");
-        localStorage.setItem("darkMode", darkModeOn);
-
-        if (darkModeOn) {
-            darkModeBtn.textContent = "Light Mode";
-        } else {
-            darkModeBtn.textContent = "Dark Mode";
-        }
-    };
+    });
 
     renderLists();
 
