@@ -36,16 +36,15 @@
 
     loadHeaderFooter();
 
-    var currentUser = sessionStorage.getItem("currentUser");
-    var dataKey = "data_" + currentUser;
-
     var listInput = document.getElementById("listInput");
     var addListBtn = document.getElementById("addListBtn");
     var listOfLists = document.getElementById("listOfLists");
 
-    var data = JSON.parse(localStorage.getItem(dataKey));
-    if (data == null) {
-        data = { lists: {} };
+    var fileHandle = null;
+    var data = null;
+
+    function saveData() {
+        writeDataToFile(fileHandle, data);
     }
 
     function generateId(existingIds) {
@@ -87,7 +86,7 @@
             tasks: {}
         };
 
-        localStorage.setItem(dataKey, JSON.stringify(data));
+        saveData();
         listInput.value = "";
         renderLists();
     };
@@ -98,11 +97,33 @@
         }
     });
 
-    renderLists();
-
     function goToList(listId) {
         window.location.href = "tasks.html?list=" + listId;
     }
+
+    loadFileHandle().then(function(handle) {
+
+        if (handle == null) {
+            showNotification("please log in and pick your data file", true);
+            setTimeout(function() {
+                window.location.href = "login.html";
+            }, 1500);
+            return;
+        }
+
+        fileHandle = handle;
+
+        return readDataFromFile(fileHandle).then(function(loadedData) {
+            data = loadedData;
+            if (data.lists == null) {
+                data.lists = {};
+            }
+            renderLists();
+        });
+
+    }).catch(function(err) {
+        showNotification("could not read the data file", true);
+    });
 
     }
     </script>
