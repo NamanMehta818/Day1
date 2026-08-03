@@ -44,9 +44,6 @@
                     </button>
                 </div>
 
-                <label for="dataFile" class="block mb-1">Upload data file (optional):</label>
-                <input type="file" id="dataFile" accept=".json" class="border rounded w-full p-2 mb-4 text-black">
-
                 <button type="submit" class="w-full bg-purple-800 text-white font-semibold rounded p-3">Login</button>
 
             </form>
@@ -62,7 +59,6 @@
         const loginForm = document.getElementById("loginForm");
         const passwordInput = document.getElementById("password");
         const toggleButton = document.getElementById("togglePassword");
-        const dataFileInput = document.getElementById("dataFile");
 
         var darkModeBtn = document.getElementById("darkModeBtn");
 
@@ -110,19 +106,6 @@
             return JSON.parse(usersText);
         }
 
-        function finishLogin(username) {
-
-            sessionStorage.setItem("loggedIn", "true");
-            sessionStorage.setItem("currentUser", username);
-            loggedIn = true;
-
-            showNotification("login successful", false);
-
-            setTimeout(function() {
-                window.location.href = "lists.html";
-            }, 1000);
-        }
-
         loginForm.addEventListener("submit", function(e) {
             e.preventDefault();
 
@@ -156,38 +139,37 @@
                 return;
             }
 
-            var dataKey = "data_" + matchedUser.username;
-
-            if (dataFileInput.files.length > 0) {
-
-                var file = dataFileInput.files[0];
-                var reader = new FileReader();
-
-                reader.onload = function(event) {
-
-                    try {
-
-                        var uploadedData = JSON.parse(event.target.result);
-
-                        localStorage.setItem(dataKey, JSON.stringify(uploadedData));
-
-                        finishLogin(matchedUser.username);
-
-                    } catch (err) {
-
-                        showNotification("that file is not valid JSON", true);
-
-                    }
-
-                };
-
-                reader.readAsText(file);
-
-            } else {
-
-                finishLogin(matchedUser.username);
-
+            if (!window.showOpenFilePicker) {
+                showNotification("your browser does not support file access. use Chrome or Edge.", true);
+                return;
             }
+
+            window.showOpenFilePicker({
+                types: [{
+                    description: "JSON data file",
+                    accept: { "application/json": [".json"] }
+                }],
+                multiple: false
+            }).then(function(handles) {
+
+                var handle = handles[0];
+
+                return saveFileHandle(handle).then(function() {
+
+                    sessionStorage.setItem("loggedIn", "true");
+                    sessionStorage.setItem("currentUser", matchedUser.username);
+
+                    showNotification("login successful", false);
+
+                    setTimeout(function() {
+                        window.location.href = "lists.html";
+                    }, 1000);
+
+                });
+
+            }).catch(function(err) {
+                showNotification("you must pick a data file to log in", true);
+            });
         });
     </script>
 

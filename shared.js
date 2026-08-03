@@ -32,6 +32,65 @@ function showNotification(message, isError) {
 
 }
 
+function openHandleDb() {
+    return new Promise(function(resolve, reject) {
+        var request = indexedDB.open("fileHandleDb", 1);
+
+        request.onupgradeneeded = function() {
+            request.result.createObjectStore("handles");
+        };
+
+        request.onsuccess = function() {
+            resolve(request.result);
+        };
+
+        request.onerror = function() {
+            reject(request.error);
+        };
+    });
+}
+
+function saveFileHandle(handle) {
+    return openHandleDb().then(function(db) {
+        return new Promise(function(resolve, reject) {
+            var tx = db.transaction("handles", "readwrite");
+            tx.objectStore("handles").put(handle, "dataFile");
+            tx.oncomplete = function() { resolve(); };
+            tx.onerror = function() { reject(tx.error); };
+        });
+    });
+}
+
+function loadFileHandle() {
+    return openHandleDb().then(function(db) {
+        return new Promise(function(resolve, reject) {
+            var tx = db.transaction("handles", "readonly");
+            var getRequest = tx.objectStore("handles").get("dataFile");
+            getRequest.onsuccess = function() { resolve(getRequest.result); };
+            getRequest.onerror = function() { reject(getRequest.error); };
+        });
+    });
+}
+
+function readDataFromFile(handle) {
+    return handle.getFile().then(function(file) {
+        return file.text();
+    }).then(function(text) {
+        if (text.trim() === "") {
+            return { lists: {} };
+        }
+        return JSON.parse(text);
+    });
+}
+
+function writeDataToFile(handle, data) {
+    return handle.createWritable().then(function(writable) {
+        return writable.write(JSON.stringify(data, null, 2)).then(function() {
+            return writable.close();
+        });
+    });
+}
+
 function loadHeaderFooter() {
 
     var currentUser = sessionStorage.getItem("currentUser");
