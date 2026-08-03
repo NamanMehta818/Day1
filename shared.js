@@ -91,7 +91,7 @@ function writeDataToFile(handle, data) {
     });
 }
 
-function loadHeaderFooter() {
+function setupHeader() {
 
     var currentUser = sessionStorage.getItem("currentUser");
 
@@ -102,21 +102,12 @@ function loadHeaderFooter() {
         currentAvatar = "boy";
     }
 
-    var headerHtml = "";
-    headerHtml += "<div class='flex justify-between items-center mb-6'>";
-    headerHtml += "<button id='darkModeBtn' class='border rounded px-3 py-1 bg-white dark:bg-gray-800 text-lg'></button>";
-    headerHtml += "<div class='flex items-center gap-3'>";
-    headerHtml += "<button id='avatarBtn' title='Click to change avatar'></button>";
-    headerHtml += "<span>" + currentUser + "</span>";
-    headerHtml += "<button id='signOutBtn' class='border rounded px-3 py-1 bg-white dark:bg-gray-800'>Sign Out</button>";
-    headerHtml += "</div>";
-    headerHtml += "</div>";
-
-    document.getElementById("pageHeader").innerHTML = headerHtml;
-
     var signOutBtn = document.getElementById("signOutBtn");
     var darkModeBtn = document.getElementById("darkModeBtn");
     var avatarBtn = document.getElementById("avatarBtn");
+    var usernameSpan = document.getElementById("usernameSpan");
+
+    usernameSpan.textContent = currentUser;
 
     avatarBtn.innerHTML = getAvatarSvg(currentAvatar);
 
