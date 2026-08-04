@@ -16,7 +16,7 @@
         <button id="darkModeBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800 text-lg"></button>
         <div class="flex items-center gap-3">
             <button id="avatarBtn" title="Click to change avatar"></button>
-            <span id="usernameSpan"></span>
+            <span id="usernameSpan" class="cursor-pointer"></span>
             <button id="signOutBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800">Sign Out</button>
         </div>
     </header>
@@ -106,29 +106,32 @@
         window.location.href = "tasks.html?list=" + listId;
     }
 
-    loadFileHandle().then(function(handle) {
+    async function startPage() {
+        try {
+            var handle = await loadFileHandle();
 
-        if (handle == null) {
-            showNotification("please log in and pick your data file", true);
-            setTimeout(function() {
-                window.location.href = "login.html";
-            }, 1500);
-            return;
-        }
+            if (handle == null) {
+                showNotification("please log in and pick your data file", true);
+                setTimeout(function() {
+                    window.location.href = "login.html";
+                }, 1500);
+                return;
+            }
 
-        fileHandle = handle;
+            fileHandle = handle;
 
-        return readDataFromFile(fileHandle).then(function(loadedData) {
-            data = loadedData;
+            data = await readDataFromFile(fileHandle);
             if (data.lists == null) {
                 data.lists = {};
             }
             renderLists();
-        });
 
-    }).catch(function(err) {
-        showNotification("could not read the data file", true);
-    });
+        } catch (err) {
+            showNotification("could not read the data file", true);
+        }
+    }
+
+    startPage();
 
     }
     </script>

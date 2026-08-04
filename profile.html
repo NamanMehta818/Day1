@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
+    <script src="shared.js"></script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-black dark:text-white min-h-screen p-8">
+
+    <header class="flex justify-between items-center mb-6">
+        <button id="darkModeBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800 text-lg"></button>
+        <div class="flex items-center gap-3">
+            <button id="avatarBtn" title="Click to change avatar"></button>
+            <span id="usernameSpan" class="cursor-pointer"></span>
+            <button id="signOutBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800">Sign Out</button>
+        </div>
+    </header>
+
+    <div class="flex gap-6">
+
+        <div class="w-56 flex flex-col gap-2">
+            <button id="userDataTab" class="text-left rounded p-3 bg-purple-800 text-white">User Data</button>
+            <button id="passwordTab" class="text-left rounded p-3 bg-white dark:bg-gray-800">Password Reset</button>
+        </div>
+
+        <div class="flex-1 bg-white dark:bg-gray-800 rounded shadow p-6">
+
+            <div id="userDataPanel">
+                <h2 class="text-xl font-bold mb-4">User Data</h2>
+
+                <form id="userDataForm" class="max-w-md">
+
+                    <label for="nameInput" class="block mb-1">Name:</label>
+                    <input type="text" id="nameInput" class="rounded w-full p-2 mb-4 text-black dark:text-white bg-gray-100 dark:bg-gray-700">
+
+                    <label for="nationalityInput" class="block mb-1">Nationality:</label>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="nationalityInput" class="rounded flex-1 p-2 text-black dark:text-white bg-gray-100 dark:bg-gray-700">
+                        <button type="button" id="locationBtn" class="bg-blue-500 text-white rounded px-3 whitespace-nowrap">Use my location</button>
+                    </div>
+
+                    <button type="submit" class="bg-purple-800 text-white font-semibold rounded p-3">Save</button>
+
+                </form>
+            </div>
+
+            <div id="passwordPanel" class="hidden">
+                <h2 class="text-xl font-bold mb-4">Password Reset</h2>
+
+                <form id="passwordForm" class="max-w-md">
+
+                    <label for="currentPassword" class="block mb-1">Current Password:</label>
+                    <input type="password" id="currentPassword" required class="rounded w-full p-2 mb-4 text-black dark:text-white bg-gray-100 dark:bg-gray-700">
+
+                    <label for="newPassword" class="block mb-1">New Password:</label>
+                    <input type="password" id="newPassword" required class="rounded w-full p-2 mb-1 text-black dark:text-white bg-gray-100 dark:bg-gray-700">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Must be 8+ characters, have 1 capital letter and 1 special character</p>
+
+                    <button type="submit" class="bg-purple-800 text-white font-semibold rounded p-3">Change Password</button>
+
+                </form>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+    if (sessionStorage.getItem("loggedIn") !== "true") {
+        window.location.href = "login.html";
+    } else {
+
+    setupHeader();
+
+    var userDataTab = document.getElementById("userDataTab");
+    var passwordTab = document.getElementById("passwordTab");
+    var userDataPanel = document.getElementById("userDataPanel");
+    var passwordPanel = document.getElementById("passwordPanel");
+
+    var activeTabClass = "text-left rounded p-3 bg-purple-800 text-white";
+    var inactiveTabClass = "text-left rounded p-3 bg-white dark:bg-gray-800";
+
+    userDataTab.onclick = function() {
+        userDataPanel.classList.remove("hidden");
+        passwordPanel.classList.add("hidden");
+        userDataTab.className = activeTabClass;
+        passwordTab.className = inactiveTabClass;
+    };
+
+    passwordTab.onclick = function() {
+        passwordPanel.classList.remove("hidden");
+        userDataPanel.classList.add("hidden");
+        passwordTab.className = activeTabClass;
+        userDataTab.className = inactiveTabClass;
+    };
+
+    var currentUser = sessionStorage.getItem("currentUser");
+
+    function getUsers() {
+        var usersText = localStorage.getItem("users");
+        if (usersText === null) {
+            return [];
+        }
+        return JSON.parse(usersText);
+    }
+
+    function findCurrentUser(users) {
+        for (var i = 0; i < users.length; i++) {
+            if (users[i].username === currentUser) {
+                return users[i];
+            }
+        }
+        return null;
+    }
+
+    var userDataForm = document.getElementById("userDataForm");
+    var nameInput = document.getElementById("nameInput");
+    var nationalityInput = document.getElementById("nationalityInput");
+    var locationBtn = document.getElementById("locationBtn");
+
+    var usersForLoad = getUsers();
+    var loadedUser = findCurrentUser(usersForLoad);
+
+    if (loadedUser != null) {
+        if (loadedUser.name != null) {
+            nameInput.value = loadedUser.name;
+        }
+        if (loadedUser.nationality != null) {
+            nationalityInput.value = loadedUser.nationality;
+        }
+    }
+
+    function getPosition() {
+        return new Promise(function(resolve, reject) {
+            navigator.geolocation.getCurrentPosition(resolve, reject);
+        });
+    }
+
+    locationBtn.onclick = async function() {
+
+        if (!navigator.geolocation) {
+            showNotification("geolocation is not supported by your browser", true);
+            return;
+        }
+
+        try {
+            var position = await getPosition();
+
+            var latitude = position.coords.latitude;
+            var longitude = position.coords.longitude;
+
+            var url = "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + latitude + "&longitude=" + longitude + "&localityLanguage=en";
+
+            var response = await fetch(url);
+            var locationData = await response.json();
+
+            nationalityInput.value = locationData.countryName;
+
+        } catch (err) {
+            showNotification("could not look up your location", true);
+        }
+    };
+
+    userDataForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+
+        var users = getUsers();
+        var matchedUser = findCurrentUser(users);
+
+        if (matchedUser === null) {
+            showNotification("could not find your account", true);
+            return;
+        }
+
+        matchedUser.name = nameInput.value.trim();
+        matchedUser.nationality = nationalityInput.value.trim();
+
+        localStorage.setItem("users", JSON.stringify(users));
+
+        showNotification("profile saved", false);
+    });
+
+    var passwordForm = document.getElementById("passwordForm");
+
+    function isValidPassword(password) {
+        if (password.length < 8) {
+            return false;
+        }
+
+        var hasCapital = false;
+        var hasSpecial = false;
+        var hasNum = false;
+        var special = "!@#$%^&*()";
+        var nums = "0123456789";
+
+        for (var i = 0; i < password.length; i++) {
+            var char = password[i];
+
+            if (char >= "A" && char <= "Z") {
+                hasCapital = true;
+            }
+
+            if (special.indexOf(char) !== -1) {
+                hasSpecial = true;
+            }
+            if (nums.indexOf(char) !== -1) {
+                hasNum = true;
+            }
+        }
+
+        return hasCapital && hasSpecial && hasNum;
+    }
+
+    passwordForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+
+        var currentPassword = document.getElementById("currentPassword").value;
+        var newPassword = document.getElementById("newPassword").value;
+
+        var users = getUsers();
+        var matchedUser = findCurrentUser(users);
+
+        if (matchedUser === null) {
+            showNotification("could not find your account", true);
+            return;
+        }
+
+        var isCurrentCorrect = dcodeIO.bcrypt.compareSync(currentPassword, matchedUser.password);
+
+        if (!isCurrentCorrect) {
+            showNotification("current password is incorrect", true);
+            return;
+        }
+
+        if (!isValidPassword(newPassword)) {
+            showNotification("new password must be at least 8 characters, have 1 capital letter and 1 special character", true);
+            return;
+        }
+
+        matchedUser.password = dcodeIO.bcrypt.hashSync(newPassword, 10);
+
+        localStorage.setItem("users", JSON.stringify(users));
+
+        showNotification("password changed successfully", false);
+
+        document.getElementById("currentPassword").value = "";
+        document.getElementById("newPassword").value = "";
+    });
+
+    }
+    </script>
+
+</body>
+</html>
