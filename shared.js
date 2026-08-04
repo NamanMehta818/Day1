@@ -38,7 +38,7 @@ function drawCaptcha(canvas) {
 
     var ctx = canvas.getContext("2d");
 
-    var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    var chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
     captchaText = "";
     for (var i = 0; i < 5; i++) {
         captchaText += chars[Math.floor(Math.random() * chars.length)];
@@ -81,7 +81,7 @@ function rand(min, max) {
 }
 
 function checkCaptcha(userInput) {
-    return userInput.toUpperCase() === captchaText;
+    return userInput === captchaText;
 }
 
 function openHandleDb() {
