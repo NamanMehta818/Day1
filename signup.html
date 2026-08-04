@@ -13,46 +13,45 @@
     <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
     <script src="shared.js"></script>
 </head>
-<body class="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-400 via-purple-700 to-blue-400">
+<body class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 text-black dark:text-white">
 
-    <button id="darkModeBtn" class="fixed top-4 left-4 border rounded px-3 py-1 bg-white dark:bg-gray-800 text-lg"></button>
+    <button id="darkModeBtn" class="fixed top-4 left-4 rounded px-3 py-1 bg-white dark:bg-gray-800 text-lg"></button>
 
-    <div class="flex w-11/12 max-w-4xl h-[650px] bg-white dark:bg-gray-800 text-black dark:text-white rounded-2xl overflow-hidden shadow-2xl">
+    <div class="w-11/12 max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-10">
 
-        <div class="flex-1 bg-purple-800 flex items-center justify-center p-8">
-            <h1 class="text-3xl font-bold text-white">Welcome Page</h1>
-        </div>
+        <h1 class="text-3xl font-bold mb-6">Create Account</h1>
 
-        <div class="flex-1 p-10">
+        <form id="signupForm">
 
-            <h1 class="text-3xl font-bold mb-4">Create Account</h1>
+            <label for="username" class="block mb-1">Email:</label>
+            <input type="email" id="username" required class="rounded w-full p-2 mb-4 text-black dark:text-white bg-gray-100 dark:bg-gray-700">
 
-            <form id="signupForm">
+            <label for="password" class="block mb-1">Password:</label>
+            <div class="relative mb-1">
+                <input type="password" id="password" required class="rounded w-full p-2 pr-10 text-black dark:text-white bg-gray-100 dark:bg-gray-700">
+                <button type="button" id="togglePassword" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
+                    <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Must be 8+ characters, have 1 capital letter and 1 special character</p>
 
-                <label for="username" class="block mb-1">Email:</label>
-                <input type="email" id="username" required class="border rounded w-full p-2 mb-4 text-black">
+            <label class="block mb-1">Type the characters below:</label>
+            <div class="flex items-center gap-2 mb-4">
+                <canvas id="captchaCanvas" width="180" height="50" class="rounded"></canvas>
+                <button type="button" id="refreshCaptcha" class="text-gray-500" title="New image">&#8635;</button>
+            </div>
+            <input type="text" id="captcha" required class="rounded w-full p-2 mb-4 text-black dark:text-white bg-gray-100 dark:bg-gray-700">
 
-                <label for="password" class="block mb-1">Password:</label>
-                <div class="relative mb-1">
-                    <input type="password" id="password" required class="border rounded w-full p-2 pr-10 text-black">
-                    <button type="button" id="togglePassword" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
-                        <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                            <circle cx="12" cy="12" r="3"/>
-                        </svg>
-                    </button>
-                </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Must be 8+ characters, have 1 capital letter and 1 special character</p>
+            <button type="submit" class="w-full bg-purple-800 text-white font-semibold rounded p-3">Create Account</button>
 
-                <button type="submit" class="w-full bg-purple-800 text-white font-semibold rounded p-3">Create Account</button>
+        </form>
 
-            </form>
-
-            <button type="button" onclick="window.location.href='login.html'" class="border rounded w-full p-2 mt-4">
-                Already have an account? Login
-            </button>
-        </div>
-
+        <button type="button" onclick="window.location.href='login.html'" class="rounded w-full p-2 mt-4 bg-gray-100 dark:bg-gray-700">
+            Already have an account? Login
+        </button>
     </div>
 
     <script>
@@ -82,6 +81,14 @@
             } else {
                 darkModeBtn.textContent = "🌙";
             }
+        };
+
+        var captchaCanvas = document.getElementById("captchaCanvas");
+        drawCaptcha(captchaCanvas);
+
+        document.getElementById("refreshCaptcha").onclick = function() {
+            drawCaptcha(captchaCanvas);
+            document.getElementById("captcha").value = "";
         };
 
         toggleButton.addEventListener("click", function() {
@@ -138,6 +145,13 @@
 
         signupForm.addEventListener("submit", function(e) {
             e.preventDefault();
+
+            if (!checkCaptcha(document.getElementById("captcha").value)) {
+                showNotification("captcha is incorrect", true);
+                drawCaptcha(captchaCanvas);
+                document.getElementById("captcha").value = "";
+                return;
+            }
 
             const username = document.getElementById("username").value.trim();
             const password = document.getElementById("password").value;

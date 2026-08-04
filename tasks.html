@@ -10,19 +10,20 @@
     </script>
     <script src="shared.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" id="flatpickrDark" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css" disabled>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 
 <body class="bg-gray-100 dark:bg-gray-900 text-black dark:text-white min-h-screen p-8">
 
-    <div id="pageHeader"></div>
-
-    <a href="lists.html"><button title="Go Back" class="border rounded p-2 bg-white dark:bg-gray-800 mb-4">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="19" y1="12" x2="5" y2="12"/>
-            <polyline points="12 19 5 12 12 5"/>
-        </svg>
-    </button></a>
+    <header class="flex justify-between items-center mb-6">
+        <button id="darkModeBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800 text-lg"></button>
+        <div class="flex items-center gap-3">
+            <button id="avatarBtn" title="Click to change avatar"></button>
+            <span id="usernameSpan" class="cursor-pointer"></span>
+            <button id="signOutBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800">Sign Out</button>
+        </div>
+    </header>
 
     <div class="flex items-center gap-3 mb-6">
         <h1 id="listTitle" class="text-3xl font-bold"></h1>
@@ -30,27 +31,35 @@
     </div>
 
     <div class="flex gap-2 mb-6">
-        <input type="text" id="taskInput" class="border rounded p-2 flex-1 text-black dark:text-white dark:bg-gray-800">
+        <input type="text" id="taskInput" class="rounded p-2 flex-1 text-black dark:text-white bg-white dark:bg-gray-800">
         <button id="addTaskBtn" class="bg-purple-800 text-white px-4 py-2 rounded">Add Task</button>
     </div>
 
     <div class="flex gap-2 mb-4">
-        <input type="text" id="searchInput" placeholder="Search tasks" class="border rounded p-2 w-1/2 text-black dark:text-white dark:bg-gray-800" onkeyup="renderTasks()">
-        <select id="sortInput" class="border rounded p-2 text-black dark:text-white dark:bg-gray-800" onchange="renderTasks()">
+        <input type="text" id="searchInput" placeholder="Search tasks" class="rounded p-2 flex-1 text-black dark:text-white bg-white dark:bg-gray-800" onkeyup="renderTasks()">
+        <select id="filterInput" class="rounded p-2 text-black dark:text-white bg-white dark:bg-gray-800" onchange="renderTasks()">
+            <option value="all">All dates</option>
+            <option value="none">No due date</option>
+            <option value="today">Today</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="past">Past</option>
+        </select>
+        <select id="sortInput" class="rounded p-2 text-black dark:text-white bg-white dark:bg-gray-800" onchange="renderTasks()">
             <option value="date">Date (Closest)</option>
+            <option value="grouped">Date (Grouped)</option>
             <option value="name">Name (A-Z)</option>
         </select>
     </div>
 
-    <h2 class="text-xl font-bold mb-2">Pending</h2>
+    <p id="emptyMessage" class="text-gray-500 dark:text-gray-400 hidden">No tasks have been added.</p>
+
+    <h2 id="pendingHeading" class="text-xl font-bold mb-2">Pending</h2>
     <ul id="pendingList"></ul>
 
-    <h2 class="text-xl font-bold mb-2 mt-6">Completed</h2>
+    <h2 id="completedHeading" class="text-xl font-bold mb-2 mt-6">Completed</h2>
     <ul id="completedList"></ul>
 
     <input type="text" id="hiddenDateInput" class="hidden">
-
-    <div id="pageFooter"></div>
 
 <script>
 
@@ -59,7 +68,7 @@ if (sessionStorage.getItem("loggedIn") !== "true") {
 }
 else {
 
-loadHeaderFooter();
+setupHeader();
 
 var urlParams = new URLSearchParams(window.location.search);
 var listId = urlParams.get("list");
@@ -70,6 +79,9 @@ var taskInput = document.getElementById("taskInput");
 var addTaskBtn = document.getElementById("addTaskBtn");
 var pendingList = document.getElementById("pendingList");
 var completedList = document.getElementById("completedList");
+var pendingHeading = document.getElementById("pendingHeading");
+var completedHeading = document.getElementById("completedHeading");
+var emptyMessage = document.getElementById("emptyMessage");
 var hiddenDateInput = document.getElementById("hiddenDateInput");
 
 var fileHandle = null;
@@ -87,13 +99,55 @@ var checkIconSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='1
 
 editListBtn.innerHTML = editIconSvg;
 
-editListBtn.onclick = function() {
-    var newName = prompt("Change list name to:", currentList.name);
-    if (newName != null && newName != "") {
+function startListEdit() {
+
+    listTitle.innerHTML = "";
+
+    var input = document.createElement("input");
+    input.type = "text";
+    input.value = currentList.name;
+    input.className = "rounded p-1 text-black dark:text-white bg-white dark:bg-gray-700 text-3xl font-bold w-64 mr-2";
+
+    var saveBtn = document.createElement("button");
+    saveBtn.className = "bg-green-500 text-white p-2 rounded mr-2";
+    saveBtn.innerHTML = checkIconSvg;
+    saveBtn.onclick = function() {
+        saveListEdit(input.value);
+    };
+
+    var cancelBtn = document.createElement("button");
+    cancelBtn.className = "bg-gray-500 text-white p-2 rounded";
+    cancelBtn.innerHTML = deleteIconSvg;
+    cancelBtn.onclick = function() {
+        listTitle.innerHTML = currentList.name;
+    };
+
+    listTitle.appendChild(input);
+    listTitle.appendChild(saveBtn);
+    listTitle.appendChild(cancelBtn);
+    input.focus();
+
+    input.addEventListener("keydown", function(e) {
+        if (e.key == "Enter") {
+            saveListEdit(input.value);
+        }
+        if (e.key == "Escape") {
+            listTitle.innerHTML = currentList.name;
+        }
+    });
+}
+
+function saveListEdit(newName) {
+    newName = newName.trim();
+    if (newName != "") {
         currentList.name = newName;
         saveData();
-        listTitle.innerHTML = currentList.name;
     }
+    listTitle.innerHTML = currentList.name;
+}
+
+editListBtn.onclick = function() {
+    startListEdit();
 };
 
 function generateId(existingIds) {
@@ -124,12 +178,44 @@ function formatDate(dateString) {
 
 }
 
+function getTodayString() {
+    var now = new Date();
+    var year = now.getFullYear();
+    var month = now.getMonth() + 1;
+    var day = now.getDate();
+
+    if (month < 10) { month = "0" + month; }
+    if (day < 10) { day = "0" + day; }
+
+    return year + "-" + month + "-" + day;
+}
+
+function getDateCategory(task) {
+
+    if (task.date == "") {
+        return "none";
+    }
+
+    var today = getTodayString();
+
+    if (task.date == today) {
+        return "today";
+    }
+
+    if (task.date > today) {
+        return "upcoming";
+    }
+
+    return "past";
+}
+
 var taskIdBeingEdited = null;
 
 function renderTasks() {
 
     var search = document.getElementById("searchInput").value.toLowerCase();
     var sort = document.getElementById("sortInput").value;
+    var filter = document.getElementById("filterInput").value;
 
     var cardClass = "bg-white dark:bg-gray-800 rounded shadow p-4 mb-2 flex items-center justify-between";
 
@@ -140,6 +226,11 @@ function renderTasks() {
         };
     }).filter(function(item) {
         return item.task.name.toLowerCase().includes(search);
+    }).filter(function(item) {
+        if (filter == "all") {
+            return true;
+        }
+        return getDateCategory(item.task) == filter;
     });
 
 
@@ -172,8 +263,34 @@ function renderTasks() {
 
     }
 
+
+    if (sort == "grouped") {
+
+        var groupOrder = { past: 0, today: 1, upcoming: 2, none: 3 };
+
+        taskArray.sort(function(a,b) {
+
+            var aGroup = groupOrder[getDateCategory(a.task)];
+            var bGroup = groupOrder[getDateCategory(b.task)];
+
+            if (aGroup != bGroup) {
+                return aGroup - bGroup;
+            }
+
+            if (a.task.date == "") {
+                return 0;
+            }
+
+            return new Date(a.task.date) - new Date(b.task.date);
+
+        });
+
+    }
+
     var pendingHtml = "";
     var completedHtml = "";
+    var pendingCount = 0;
+    var completedCount = 0;
 
     taskArray.forEach(function(item) {
 
@@ -182,17 +299,18 @@ function renderTasks() {
 
         if (taskId == taskIdBeingEdited) {
 
-            var editRowHtml = "<li class='" + cardClass + "'>";
-            editRowHtml += "<input type='text' id='editInput_" + taskId + "' value=\"" + task.name + "\" onkeydown=\"if (event.key == 'Enter') { saveTaskEdit('" + taskId + "'); }\" class='border rounded p-1 flex-1 text-black mr-2'>";
-            editRowHtml += "<span class='flex items-center gap-2'>";
+            var editRowHtml = "<li class='bg-white dark:bg-gray-800 rounded shadow p-4 mb-2 flex items-center gap-2'>";
+            editRowHtml += "<input type='text' id='editInput_" + taskId + "' value=\"" + task.name + "\" onkeydown=\"if (event.key == 'Enter') { saveTaskEdit('" + taskId + "'); }\" class='rounded p-1 w-64 text-black dark:text-white bg-white dark:bg-gray-700'>";
             editRowHtml += "<button title='Save' class='bg-green-500 text-white p-2 rounded' onclick=\"saveTaskEdit('" + taskId + "')\">" + checkIconSvg + "</button>";
             editRowHtml += "<button title='Cancel' class='bg-gray-500 text-white p-2 rounded' onclick=\"cancelTaskEdit()\">" + deleteIconSvg + "</button>";
-            editRowHtml += "</span></li>";
+            editRowHtml += "</li>";
 
             if (task.IsCompleted == false) {
                 pendingHtml += editRowHtml;
+                pendingCount++;
             } else {
                 completedHtml += editRowHtml;
+                completedCount++;
             }
 
             return;
@@ -207,11 +325,13 @@ function renderTasks() {
 
         if (task.IsCompleted == false) {
 
-            pendingHtml += "<li class='" + cardClass + "'><span><input type='checkbox' onclick=\"toggleTask('" + taskId + "')\"> " + task.name + dateText + "</span><span class='flex items-center gap-2'><button title='Set Date' class='bg-yellow-500 text-white p-2 rounded' onclick=\"setTaskDate('" + taskId + "', this)\">" + calendarIconSvg + "</button> <button title='Edit' class='bg-blue-500 text-white p-2 rounded' onclick=\"startTaskEdit('" + taskId + "')\">" + editIconSvg + "</button> <button title='Delete' class='bg-red-500 text-white p-2 rounded' onclick=\"deleteTask('" + taskId + "')\">" + deleteIconSvg + "</button></span></li>";
+            pendingHtml += "<li class='" + cardClass + "'><span><input type='checkbox' onclick=\"toggleTask('" + taskId + "')\"> <span class='cursor-pointer' onclick=\"startTaskEdit('" + taskId + "')\">" + task.name + "</span>" + dateText + "</span><span class='flex items-center gap-2'><button title='Set Date' class='bg-yellow-500 text-white p-2 rounded' onclick=\"setTaskDate('" + taskId + "', this)\">" + calendarIconSvg + "</button> <button title='Edit' class='bg-blue-500 text-white p-2 rounded' onclick=\"startTaskEdit('" + taskId + "')\">" + editIconSvg + "</button> <button title='Delete' class='bg-red-500 text-white p-2 rounded' onclick=\"deleteTask('" + taskId + "')\">" + deleteIconSvg + "</button></span></li>";
+            pendingCount++;
 
         } else {
 
-            completedHtml += "<li class='" + cardClass + "'><span><input type='checkbox' checked onclick=\"toggleTask('" + taskId + "')\"> <del>" + task.name + "</del>" + dateText + "</span><span class='flex items-center gap-2'><button title='Set Date' class='bg-yellow-500 text-white p-2 rounded' onclick=\"setTaskDate('" + taskId + "', this)\">" + calendarIconSvg + "</button> <button title='Edit' class='bg-blue-500 text-white p-2 rounded' onclick=\"startTaskEdit('" + taskId + "')\">" + editIconSvg + "</button> <button title='Delete' class='bg-red-500 text-white p-2 rounded' onclick=\"deleteTask('" + taskId + "')\">" + deleteIconSvg + "</button></span></li>";
+            completedHtml += "<li class='" + cardClass + "'><span><input type='checkbox' checked onclick=\"toggleTask('" + taskId + "')\"> <span class='cursor-pointer' onclick=\"startTaskEdit('" + taskId + "')\"><del>" + task.name + "</del></span>" + dateText + "</span><span class='flex items-center gap-2'><button title='Set Date' class='bg-yellow-500 text-white p-2 rounded' onclick=\"setTaskDate('" + taskId + "', this)\">" + calendarIconSvg + "</button> <button title='Edit' class='bg-blue-500 text-white p-2 rounded' onclick=\"startTaskEdit('" + taskId + "')\">" + editIconSvg + "</button> <button title='Delete' class='bg-red-500 text-white p-2 rounded' onclick=\"deleteTask('" + taskId + "')\">" + deleteIconSvg + "</button></span></li>";
+            completedCount++;
 
         }
 
@@ -219,6 +339,24 @@ function renderTasks() {
 
     pendingList.innerHTML = pendingHtml;
     completedList.innerHTML = completedHtml;
+
+    if (pendingCount > 0) {
+        pendingHeading.classList.remove("hidden");
+    } else {
+        pendingHeading.classList.add("hidden");
+    }
+
+    if (completedCount > 0) {
+        completedHeading.classList.remove("hidden");
+    } else {
+        completedHeading.classList.add("hidden");
+    }
+
+    if (pendingCount == 0 && completedCount == 0) {
+        emptyMessage.classList.remove("hidden");
+    } else {
+        emptyMessage.classList.add("hidden");
+    }
 
     if (taskIdBeingEdited != null) {
         var input = document.getElementById("editInput_" + taskIdBeingEdited);
@@ -342,20 +480,21 @@ function deleteTask(taskId) {
 
 }
 
-loadFileHandle().then(function(handle) {
+async function startPage() {
+    try {
+        var handle = await loadFileHandle();
 
-    if (handle == null) {
-        showNotification("please log in and pick your data file", true);
-        setTimeout(function() {
-            window.location.href = "login.html";
-        }, 1500);
-        return;
-    }
+        if (handle == null) {
+            showNotification("please log in and pick your data file", true);
+            setTimeout(function() {
+                window.location.href = "login.html";
+            }, 1500);
+            return;
+        }
 
-    fileHandle = handle;
+        fileHandle = handle;
 
-    return readDataFromFile(fileHandle).then(function(loadedData) {
-        data = loadedData;
+        data = await readDataFromFile(fileHandle);
         if (data.lists == null) {
             data.lists = {};
         }
@@ -365,11 +504,13 @@ loadFileHandle().then(function(handle) {
         listTitle.innerHTML = currentList.name;
 
         renderTasks();
-    });
 
-}).catch(function(err) {
-    showNotification("could not read the data file", true);
-});
+    } catch (err) {
+        showNotification("could not read the data file", true);
+    }
+}
+
+startPage();
 
 }
 

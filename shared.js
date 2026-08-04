@@ -32,6 +32,58 @@ function showNotification(message, isError) {
 
 }
 
+var captchaText = "";
+
+function drawCaptcha(canvas) {
+
+    var ctx = canvas.getContext("2d");
+
+    var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    captchaText = "";
+    for (var i = 0; i < 5; i++) {
+        captchaText += chars[Math.floor(Math.random() * chars.length)];
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#f3f4f6";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (var n = 0; n < 6; n++) {
+        ctx.strokeStyle = "rgb(" + rand(100, 200) + "," + rand(100, 200) + "," + rand(100, 200) + ")";
+        ctx.beginPath();
+        ctx.moveTo(rand(0, canvas.width), rand(0, canvas.height));
+        ctx.lineTo(rand(0, canvas.width), rand(0, canvas.height));
+        ctx.stroke();
+    }
+
+    for (var j = 0; j < captchaText.length; j++) {
+
+        ctx.save();
+
+        var x = 20 + j * 30;
+        var y = 30;
+
+        ctx.translate(x, y);
+        ctx.rotate((Math.random() - 0.5) * 0.6);
+
+        ctx.font = rand(24, 32) + "px Arial";
+        ctx.fillStyle = "rgb(" + rand(0, 100) + "," + rand(0, 100) + "," + rand(0, 100) + ")";
+
+        ctx.fillText(captchaText[j], 0, 0);
+
+        ctx.restore();
+    }
+}
+
+function rand(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function checkCaptcha(userInput) {
+    return userInput.toUpperCase() === captchaText;
+}
+
 function openHandleDb() {
     return new Promise(function(resolve, reject) {
         var request = indexedDB.open("fileHandleDb", 1);
@@ -50,48 +102,43 @@ function openHandleDb() {
     });
 }
 
-function saveFileHandle(handle) {
-    return openHandleDb().then(function(db) {
-        return new Promise(function(resolve, reject) {
-            var tx = db.transaction("handles", "readwrite");
-            tx.objectStore("handles").put(handle, "dataFile");
-            tx.oncomplete = function() { resolve(); };
-            tx.onerror = function() { reject(tx.error); };
-        });
+async function saveFileHandle(handle) {
+    var db = await openHandleDb();
+    return new Promise(function(resolve, reject) {
+        var tx = db.transaction("handles", "readwrite");
+        tx.objectStore("handles").put(handle, "dataFile");
+        tx.oncomplete = function() { resolve(); };
+        tx.onerror = function() { reject(tx.error); };
     });
 }
 
-function loadFileHandle() {
-    return openHandleDb().then(function(db) {
-        return new Promise(function(resolve, reject) {
-            var tx = db.transaction("handles", "readonly");
-            var getRequest = tx.objectStore("handles").get("dataFile");
-            getRequest.onsuccess = function() { resolve(getRequest.result); };
-            getRequest.onerror = function() { reject(getRequest.error); };
-        });
+async function loadFileHandle() {
+    var db = await openHandleDb();
+    return new Promise(function(resolve, reject) {
+        var tx = db.transaction("handles", "readonly");
+        var getRequest = tx.objectStore("handles").get("dataFile");
+        getRequest.onsuccess = function() { resolve(getRequest.result); };
+        getRequest.onerror = function() { reject(getRequest.error); };
     });
 }
 
-function readDataFromFile(handle) {
-    return handle.getFile().then(function(file) {
-        return file.text();
-    }).then(function(text) {
-        if (text.trim() === "") {
-            return { lists: {} };
-        }
-        return JSON.parse(text);
-    });
+async function readDataFromFile(handle) {
+    var file = await handle.getFile();
+    var text = await file.text();
+
+    if (text.trim() === "") {
+        return { lists: {} };
+    }
+    return JSON.parse(text);
 }
 
-function writeDataToFile(handle, data) {
-    return handle.createWritable().then(function(writable) {
-        return writable.write(JSON.stringify(data, null, 2)).then(function() {
-            return writable.close();
-        });
-    });
+async function writeDataToFile(handle, data) {
+    var writable = await handle.createWritable();
+    await writable.write(JSON.stringify(data, null, 2));
+    await writable.close();
 }
 
-function loadHeaderFooter() {
+function setupHeader() {
 
     var currentUser = sessionStorage.getItem("currentUser");
 
@@ -102,21 +149,16 @@ function loadHeaderFooter() {
         currentAvatar = "boy";
     }
 
-    var headerHtml = "";
-    headerHtml += "<div class='flex justify-between items-center mb-6'>";
-    headerHtml += "<button id='darkModeBtn' class='border rounded px-3 py-1 bg-white dark:bg-gray-800 text-lg'></button>";
-    headerHtml += "<div class='flex items-center gap-3'>";
-    headerHtml += "<button id='avatarBtn' title='Click to change avatar'></button>";
-    headerHtml += "<span>" + currentUser + "</span>";
-    headerHtml += "<button id='signOutBtn' class='border rounded px-3 py-1 bg-white dark:bg-gray-800'>Sign Out</button>";
-    headerHtml += "</div>";
-    headerHtml += "</div>";
-
-    document.getElementById("pageHeader").innerHTML = headerHtml;
-
     var signOutBtn = document.getElementById("signOutBtn");
     var darkModeBtn = document.getElementById("darkModeBtn");
     var avatarBtn = document.getElementById("avatarBtn");
+    var usernameSpan = document.getElementById("usernameSpan");
+
+    usernameSpan.textContent = currentUser;
+    usernameSpan.style.cursor = "pointer";
+    usernameSpan.onclick = function() {
+        window.location.href = "profile.html";
+    };
 
     avatarBtn.innerHTML = getAvatarSvg(currentAvatar);
 
@@ -137,6 +179,13 @@ function loadHeaderFooter() {
         window.location.href = "login.html";
     };
 
+    function updateCalendarTheme(isDark) {
+        var darkCalendarCss = document.getElementById("flatpickrDark");
+        if (darkCalendarCss != null) {
+            darkCalendarCss.disabled = !isDark;
+        }
+    }
+
     var darkModeOn = localStorage.getItem("darkMode") === "true";
 
     if (darkModeOn) {
@@ -145,6 +194,8 @@ function loadHeaderFooter() {
     } else {
         darkModeBtn.textContent = "🌙";
     }
+
+    updateCalendarTheme(darkModeOn);
 
     darkModeBtn.onclick = function() {
         document.documentElement.classList.toggle("dark");
@@ -157,6 +208,8 @@ function loadHeaderFooter() {
         } else {
             darkModeBtn.textContent = "🌙";
         }
+
+        updateCalendarTheme(darkModeOn);
     };
 
 }
