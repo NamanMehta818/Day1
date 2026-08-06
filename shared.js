@@ -149,16 +149,15 @@ function setupHeader() {
         currentAvatar = "boy";
     }
 
-    var signOutBtn = document.getElementById("signOutBtn");
     var darkModeBtn = document.getElementById("darkModeBtn");
     var avatarBtn = document.getElementById("avatarBtn");
     var usernameSpan = document.getElementById("usernameSpan");
+    var userMenuBtn = document.getElementById("userMenuBtn");
+    var userMenuDropdown = document.getElementById("userMenuDropdown");
+    var profileMenuItem = document.getElementById("profileMenuItem");
+    var signOutMenuItem = document.getElementById("signOutMenuItem");
 
     usernameSpan.textContent = currentUser;
-    usernameSpan.style.cursor = "pointer";
-    usernameSpan.onclick = function() {
-        window.location.href = "profile.html";
-    };
 
     avatarBtn.innerHTML = getAvatarSvg(currentAvatar);
 
@@ -173,7 +172,20 @@ function setupHeader() {
         avatarBtn.innerHTML = getAvatarSvg(currentAvatar);
     };
 
-    signOutBtn.onclick = function() {
+    userMenuBtn.onclick = function(e) {
+        e.stopPropagation();
+        userMenuDropdown.classList.toggle("hidden");
+    };
+
+    document.addEventListener("click", function() {
+        userMenuDropdown.classList.add("hidden");
+    });
+
+    profileMenuItem.onclick = function() {
+        window.location.href = "profile.html";
+    };
+
+    signOutMenuItem.onclick = function() {
         sessionStorage.removeItem("loggedIn");
         sessionStorage.removeItem("currentUser");
         window.location.href = "login.html";

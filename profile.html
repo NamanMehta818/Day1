@@ -11,14 +11,24 @@
     <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
     <script src="shared.js"></script>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-black dark:text-white min-h-screen p-8">
+<body class="bg-gray-100 dark:bg-gray-900 text-black dark:text-white min-h-screen p-8 flex flex-col">
 
     <header class="flex justify-between items-center mb-6">
         <button id="darkModeBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800 text-lg"></button>
         <div class="flex items-center gap-3">
             <button id="avatarBtn" title="Click to change avatar"></button>
-            <span id="usernameSpan" class="cursor-pointer"></span>
-            <button id="signOutBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800">Sign Out</button>
+            <div class="relative">
+                <button id="userMenuBtn" class="flex items-center gap-1 rounded px-3 py-1 bg-white dark:bg-gray-800">
+                    <span id="usernameSpan"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <div id="userMenuDropdown" class="hidden absolute right-0 mt-1 w-32 bg-white dark:bg-gray-700 rounded shadow z-10">
+                    <button id="profileMenuItem" class="block w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600">Profile</button>
+                    <button id="signOutMenuItem" class="block w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600">Sign Out</button>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -73,6 +83,8 @@
         </div>
 
     </div>
+
+    <footer class="text-center text-gray-500 dark:text-gray-400 mt-auto pt-8">Footer</footer>
 
     <script>
     if (sessionStorage.getItem("loggedIn") !== "true") {

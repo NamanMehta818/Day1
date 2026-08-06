@@ -14,14 +14,24 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 
-<body class="bg-gray-100 dark:bg-gray-900 text-black dark:text-white min-h-screen p-8">
+<body class="bg-gray-100 dark:bg-gray-900 text-black dark:text-white min-h-screen p-8 flex flex-col">
 
     <header class="flex justify-between items-center mb-6">
         <button id="darkModeBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800 text-lg"></button>
         <div class="flex items-center gap-3">
             <button id="avatarBtn" title="Click to change avatar"></button>
-            <span id="usernameSpan" class="cursor-pointer"></span>
-            <button id="signOutBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800">Sign Out</button>
+            <div class="relative">
+                <button id="userMenuBtn" class="flex items-center gap-1 rounded px-3 py-1 bg-white dark:bg-gray-800">
+                    <span id="usernameSpan"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <div id="userMenuDropdown" class="hidden absolute right-0 mt-1 w-32 bg-white dark:bg-gray-700 rounded shadow z-10">
+                    <button id="profileMenuItem" class="block w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600">Profile</button>
+                    <button id="signOutMenuItem" class="block w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600">Sign Out</button>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -49,9 +59,10 @@
             <option value="grouped">Date (Grouped)</option>
             <option value="name">Name (A-Z)</option>
         </select>
+        <button id="clearBtn" class="rounded px-4 bg-gray-500 text-white">Clear</button>
     </div>
 
-    <p id="emptyMessage" class="text-gray-500 dark:text-gray-400 hidden">No tasks have been added.</p>
+    <p id="emptyMessage" class="text-gray-500 dark:text-gray-400 hidden"></p>
 
     <h2 id="pendingHeading" class="text-xl font-bold mb-2">Pending</h2>
     <ul id="pendingList"></ul>
@@ -60,6 +71,8 @@
     <ul id="completedList"></ul>
 
     <input type="text" id="hiddenDateInput" class="hidden">
+
+    <footer class="text-center text-gray-500 dark:text-gray-400 mt-auto pt-8">Footer</footer>
 
 <script>
 
@@ -83,6 +96,7 @@ var pendingHeading = document.getElementById("pendingHeading");
 var completedHeading = document.getElementById("completedHeading");
 var emptyMessage = document.getElementById("emptyMessage");
 var hiddenDateInput = document.getElementById("hiddenDateInput");
+var clearBtn = document.getElementById("clearBtn");
 
 var fileHandle = null;
 var data = null;
@@ -96,6 +110,7 @@ var editIconSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16
 var deleteIconSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg>";
 var calendarIconSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><rect x='3' y='4' width='18' height='18' rx='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg>";
 var checkIconSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><polyline points='20 6 9 17 4 12'/></svg>";
+var dotsIconSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='currentColor'><circle cx='12' cy='5' r='2'/><circle cx='12' cy='12' r='2'/><circle cx='12' cy='19' r='2'/></svg>";
 
 editListBtn.innerHTML = editIconSvg;
 
@@ -210,6 +225,41 @@ function getDateCategory(task) {
 }
 
 var taskIdBeingEdited = null;
+var menuOpenForTaskId = null;
+
+function buildMenuHtml(taskId) {
+
+    var menuHtml = "<div class='relative'>";
+    menuHtml += "<button title='Options' class='bg-gray-200 dark:bg-gray-700 text-black dark:text-white p-2 rounded' onclick=\"toggleMenu('" + taskId + "', event)\">" + dotsIconSvg + "</button>";
+
+    if (menuOpenForTaskId == taskId) {
+        menuHtml += "<div class='absolute right-0 mt-1 w-40 bg-white dark:bg-gray-700 rounded shadow z-10'>";
+        menuHtml += "<button class='flex items-center gap-2 w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600' onclick=\"setTaskDate('" + taskId + "', this)\"><span class='text-yellow-500'>" + calendarIconSvg + "</span> Set Date</button>";
+        menuHtml += "<button class='flex items-center gap-2 w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600' onclick=\"startTaskEdit('" + taskId + "')\"><span class='text-blue-500'>" + editIconSvg + "</span> Edit</button>";
+        menuHtml += "<button class='flex items-center gap-2 w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600' onclick=\"deleteTask('" + taskId + "')\"><span class='text-red-500'>" + deleteIconSvg + "</span> Delete</button>";
+        menuHtml += "</div>";
+    }
+
+    menuHtml += "</div>";
+    return menuHtml;
+}
+
+function toggleMenu(taskId, event) {
+    event.stopPropagation();
+    if (menuOpenForTaskId == taskId) {
+        menuOpenForTaskId = null;
+    } else {
+        menuOpenForTaskId = taskId;
+    }
+    renderTasks();
+}
+
+document.addEventListener("click", function() {
+    if (menuOpenForTaskId != null) {
+        menuOpenForTaskId = null;
+        renderTasks();
+    }
+});
 
 function renderTasks() {
 
@@ -323,14 +373,16 @@ function renderTasks() {
             dateText = " <span class='text-xs text-gray-500 dark:text-gray-400'>(" + formatDate(task.date) + ")</span>";
         }
 
+        var menuHtml = buildMenuHtml(taskId);
+
         if (task.IsCompleted == false) {
 
-            pendingHtml += "<li class='" + cardClass + "'><span><input type='checkbox' onclick=\"toggleTask('" + taskId + "')\"> <span class='cursor-pointer' onclick=\"startTaskEdit('" + taskId + "')\">" + task.name + "</span>" + dateText + "</span><span class='flex items-center gap-2'><button title='Set Date' class='bg-yellow-500 text-white p-2 rounded' onclick=\"setTaskDate('" + taskId + "', this)\">" + calendarIconSvg + "</button> <button title='Edit' class='bg-blue-500 text-white p-2 rounded' onclick=\"startTaskEdit('" + taskId + "')\">" + editIconSvg + "</button> <button title='Delete' class='bg-red-500 text-white p-2 rounded' onclick=\"deleteTask('" + taskId + "')\">" + deleteIconSvg + "</button></span></li>";
+            pendingHtml += "<li class='" + cardClass + "'><span><input type='checkbox' onclick=\"toggleTask('" + taskId + "')\"> <span class='cursor-pointer' onclick=\"startTaskEdit('" + taskId + "')\">" + task.name + "</span>" + dateText + "</span>" + menuHtml + "</li>";
             pendingCount++;
 
         } else {
 
-            completedHtml += "<li class='" + cardClass + "'><span><input type='checkbox' checked onclick=\"toggleTask('" + taskId + "')\"> <span class='cursor-pointer' onclick=\"startTaskEdit('" + taskId + "')\"><del>" + task.name + "</del></span>" + dateText + "</span><span class='flex items-center gap-2'><button title='Set Date' class='bg-yellow-500 text-white p-2 rounded' onclick=\"setTaskDate('" + taskId + "', this)\">" + calendarIconSvg + "</button> <button title='Edit' class='bg-blue-500 text-white p-2 rounded' onclick=\"startTaskEdit('" + taskId + "')\">" + editIconSvg + "</button> <button title='Delete' class='bg-red-500 text-white p-2 rounded' onclick=\"deleteTask('" + taskId + "')\">" + deleteIconSvg + "</button></span></li>";
+            completedHtml += "<li class='" + cardClass + "'><span><input type='checkbox' checked onclick=\"toggleTask('" + taskId + "')\"> <span class='cursor-pointer' onclick=\"startTaskEdit('" + taskId + "')\"><del>" + task.name + "</del></span>" + dateText + "</span>" + menuHtml + "</li>";
             completedCount++;
 
         }
@@ -353,6 +405,12 @@ function renderTasks() {
     }
 
     if (pendingCount == 0 && completedCount == 0) {
+        var totalTasks = Object.keys(currentList.tasks).length;
+        if (totalTasks == 0) {
+            emptyMessage.textContent = "No tasks have been added yet";
+        } else {
+            emptyMessage.textContent = "No tasks found";
+        }
         emptyMessage.classList.remove("hidden");
     } else {
         emptyMessage.classList.add("hidden");
@@ -367,7 +425,15 @@ function renderTasks() {
 
 }
 
+clearBtn.onclick = function() {
+    document.getElementById("searchInput").value = "";
+    document.getElementById("filterInput").value = "all";
+    document.getElementById("sortInput").value = "date";
+    renderTasks();
+};
+
 function startTaskEdit(taskId) {
+    menuOpenForTaskId = null;
     taskIdBeingEdited = taskId;
     renderTasks();
 }
@@ -460,6 +526,7 @@ var datePicker = flatpickr("#hiddenDateInput", {
 
 function setTaskDate(taskId, buttonElement) {
 
+    menuOpenForTaskId = null;
     taskIdBeingDated = taskId;
 
     datePicker.set("positionElement", buttonElement);
@@ -472,6 +539,7 @@ function setTaskDate(taskId, buttonElement) {
 
 function deleteTask(taskId) {
 
+    menuOpenForTaskId = null;
     delete currentList.tasks[taskId];
 
     saveData();

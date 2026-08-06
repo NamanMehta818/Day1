@@ -10,20 +10,26 @@
     </script>
     <script src="shared.js"></script>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-black dark:text-white min-h-screen p-8">
+<body class="bg-gray-100 dark:bg-gray-900 text-black dark:text-white min-h-screen p-8 flex flex-col">
 
     <header class="flex justify-between items-center mb-6">
         <button id="darkModeBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800 text-lg"></button>
         <div class="flex items-center gap-3">
             <button id="avatarBtn" title="Click to change avatar"></button>
-            <span id="usernameSpan" class="cursor-pointer"></span>
-            <button id="signOutBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800">Sign Out</button>
+            <div class="relative">
+                <button id="userMenuBtn" class="flex items-center gap-1 rounded px-3 py-1 bg-white dark:bg-gray-800">
+                    <span id="usernameSpan"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <div id="userMenuDropdown" class="hidden absolute right-0 mt-1 w-32 bg-white dark:bg-gray-700 rounded shadow z-10">
+                    <button id="profileMenuItem" class="block w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600">Profile</button>
+                    <button id="signOutMenuItem" class="block w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600">Sign Out</button>
+                </div>
+            </div>
         </div>
     </header>
-
-    <footer>
-        <p> This is the footer</p>
-    </footer>
 
     <h1 class="text-3xl font-bold mb-6">My Lists</h1>
 
@@ -37,6 +43,8 @@
     </div>
 
     <ul id="listOfLists"></ul>
+
+    <footer class="text-center text-gray-500 dark:text-gray-400 mt-auto pt-8">Footer</footer>
 
     <script>
     if (sessionStorage.getItem("loggedIn") !== "true") {
@@ -52,7 +60,7 @@
     var fileHandle = null;
     var data = null;
 
-    function saveData() {
+    var listIconSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 384.97 384.97' fill='currentColor'><path d='M144.123,84.092l228.576,0.241c6.641,0,12.03-5.39,12.03-12.03c0-6.641-5.39-12.03-12.03-12.03l-228.576-0.241c-6.641,0-12.03,5.39-12.03,12.03C132.093,78.702,137.482,84.092,144.123,84.092z'/><path d='M372.939,180.455l-228.576-0.241c-6.641,0-12.03,5.39-12.03,12.03c0,6.641,5.39,12.03,12.03,12.03l228.576,0.241c6.641,0,12.03-5.39,12.03-12.03S379.58,180.455,372.939,180.455z'/><path d='M372.939,300.758l-228.576-0.241c-6.641,0-12.03,5.39-12.03,12.03s5.39,12.03,12.03,12.03l228.576,0.241c6.641,0,12.03-5.39,12.03-12.03C384.97,306.147,379.58,300.758,372.939,300.758z'/><path d='M48.001,24.301C21.486,24.301,0,45.787,0,72.302s21.486,48.001,48.001,48.001s48.001-21.486,48.001-48.001S74.516,24.301,48.001,24.301z M47.881,96.363c-13.522,0-24.361-10.539-24.361-24.061s10.839-24.061,24.361-24.061S71.941,58.78,71.941,72.302S61.403,96.363,47.881,96.363z'/><path d='M48.001,144.604C21.486,144.604,0,166.09,0,192.605s21.486,48.001,48.001,48.001s48.001-21.486,48.001-48.001S74.516,144.604,48.001,144.604z M47.881,216.666c-13.522,0-24.361-10.539-24.361-24.061c0-13.522,10.839-24.061,24.361-24.061s24.061,10.539,24.061,24.061C71.941,206.127,61.403,216.666,47.881,216.666z'/><path d='M48.001,264.667C21.486,264.667,0,286.153,0,312.668s21.486,48.001,48.001,48.001s48.001-21.486,48.001-48.001S74.516,264.667,48.001,264.667z M47.881,336.728c-13.522,0-24.361-10.539-24.361-24.061s10.839-24.061,24.361-24.061s24.061,10.539,24.061,24.061S61.403,336.728,47.881,336.728z'/></svg>";    function saveData() {
         writeDataToFile(fileHandle, data);
     }
 
@@ -74,7 +82,14 @@
             return data.lists[listId].name.toLowerCase().includes(search);
         }).map(function(listId) {
             var currentList = data.lists[listId];
-            return "<li class='bg-white dark:bg-gray-800 rounded shadow p-4 mb-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700' onclick=\"goToList('" + listId + "')\">" + currentList.name + "</li>";
+            var taskCount = Object.keys(currentList.tasks).length;
+            var taskWord = taskCount == 1 ? "task" : "tasks";
+
+            var rowHtml = "<li class='bg-white dark:bg-gray-800 rounded shadow p-4 mb-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3' onclick=\"goToList('" + listId + "')\">";
+            rowHtml += "<span class='text-gray-500 dark:text-gray-400'>" + listIconSvg + "</span>";
+            rowHtml += "<span><span class='block'>" + currentList.name + "</span><span class='block text-xs text-gray-500 dark:text-gray-400'>" + taskCount + " " + taskWord + "</span></span>";
+            rowHtml += "</li>";
+            return rowHtml;
         }).join("");
 
         listOfLists.innerHTML = listHtml;
