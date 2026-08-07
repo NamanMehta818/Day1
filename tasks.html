@@ -47,14 +47,8 @@
 
     <div class="flex gap-2 mb-4">
         <input type="text" id="searchInput" placeholder="Search tasks" class="rounded p-2 flex-1 text-black dark:text-white bg-white dark:bg-gray-800" onkeyup="renderTasks()">
-        <select id="filterInput" class="rounded p-2 text-black dark:text-white bg-white dark:bg-gray-800" onchange="renderTasks()">
-            <option value="all">All dates</option>
-            <option value="none">No due date</option>
-            <option value="today">Today</option>
-            <option value="upcoming">Upcoming</option>
-            <option value="past">Past</option>
-        </select>
         <select id="sortInput" class="rounded p-2 text-black dark:text-white bg-white dark:bg-gray-800" onchange="renderTasks()">
+            <option value="default">Default</option>
             <option value="date">Date (Closest)</option>
             <option value="grouped">Date (Grouped)</option>
             <option value="name">Name (A-Z)</option>
@@ -64,11 +58,35 @@
 
     <p id="emptyMessage" class="text-gray-500 dark:text-gray-400 hidden"></p>
 
-    <h2 id="pendingHeading" class="text-xl font-bold mb-2">Pending</h2>
-    <ul id="pendingList"></ul>
+    <div id="taskListsContainer">
 
-    <h2 id="completedHeading" class="text-xl font-bold mb-2 mt-6">Completed</h2>
-    <ul id="completedList"></ul>
+        <div id="defaultView">
+            <h2 id="pendingHeading" class="text-xl font-bold mb-2">Pending</h2>
+            <ul id="pendingList"></ul>
+            <h2 id="completedHeading" class="text-xl font-bold mb-2 mt-6">Completed</h2>
+            <ul id="completedList"></ul>
+        </div>
+
+        <div id="dateView">
+            <div id="pastSection">
+                <h2 class="text-xl font-bold mb-2">Past</h2>
+                <ul id="pastList"></ul>
+            </div>
+            <div id="todaySection">
+                <h2 class="text-xl font-bold mb-2">Today</h2>
+                <ul id="todayList"></ul>
+            </div>
+            <div id="upcomingSection">
+                <h2 class="text-xl font-bold mb-2">Upcoming</h2>
+                <ul id="upcomingList"></ul>
+            </div>
+            <div id="noDateSection">
+                <h2 class="text-xl font-bold mb-2 mt-6">No Date</h2>
+                <ul id="noDateList"></ul>
+            </div>
+        </div>
+
+    </div>
 
     <input type="text" id="hiddenDateInput" class="hidden">
 
@@ -97,6 +115,9 @@ var completedHeading = document.getElementById("completedHeading");
 var emptyMessage = document.getElementById("emptyMessage");
 var hiddenDateInput = document.getElementById("hiddenDateInput");
 var clearBtn = document.getElementById("clearBtn");
+var defaultView = document.getElementById("defaultView");
+var dateView = document.getElementById("dateView");
+var taskListsContainer = document.getElementById("taskListsContainer");
 
 var fileHandle = null;
 var data = null;
@@ -153,11 +174,8 @@ function startListEdit() {
 }
 
 function saveListEdit(newName) {
-    newName = newName.trim();
-    if (newName != "") {
-        currentList.name = newName;
-        saveData();
-    }
+    currentList.rename(newName);
+    saveData();
     listTitle.innerHTML = currentList.name;
 }
 
@@ -166,31 +184,23 @@ editListBtn.onclick = function() {
 };
 
 function generateId(existingIds) {
-
     var newId = Math.floor(Math.random() * 1000000000).toString();
-
     while (existingIds[newId] != null) {
         newId = Math.floor(Math.random() * 1000000000).toString();
     }
-
     return newId;
 }
 
 function formatDate(dateString) {
-
     var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
     var parts = dateString.split("-");
     var year = parts[0];
     var month = parts[1];
     var day = parts[2];
-
     var monthIndex = parseInt(month, 10) - 1;
     var monthName = monthNames[monthIndex];
     var dayNumber = parseInt(day, 10);
-
     return monthName + " " + dayNumber + ", " + year;
-
 }
 
 function getTodayString() {
@@ -198,54 +208,33 @@ function getTodayString() {
     var year = now.getFullYear();
     var month = now.getMonth() + 1;
     var day = now.getDate();
-
     if (month < 10) { month = "0" + month; }
     if (day < 10) { day = "0" + day; }
-
     return year + "-" + month + "-" + day;
 }
 
 function getDateCategory(task) {
-
-    if (task.date == "") {
-        return "none";
-    }
-
-    var today = getTodayString();
-
-    if (task.date == today) {
-        return "today";
-    }
-
-    if (task.date > today) {
-        return "upcoming";
-    }
-
-    return "past";
+    return task.getDateCategory(getTodayString());
 }
 
 var taskIdBeingEdited = null;
 var menuOpenForTaskId = null;
 
 function buildMenuHtml(taskId) {
-
     var menuHtml = "<div class='relative'>";
-    menuHtml += "<button title='Options' class='bg-gray-200 dark:bg-gray-700 text-black dark:text-white p-2 rounded' onclick=\"toggleMenu('" + taskId + "', event)\">" + dotsIconSvg + "</button>";
-
+    menuHtml += "<button title='Options' data-action='menu-toggle' class='bg-gray-200 dark:bg-gray-700 text-black dark:text-white p-2 rounded'>" + dotsIconSvg + "</button>";
     if (menuOpenForTaskId == taskId) {
         menuHtml += "<div class='absolute right-0 mt-1 w-40 bg-white dark:bg-gray-700 rounded shadow z-10'>";
-        menuHtml += "<button class='flex items-center gap-2 w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600' onclick=\"setTaskDate('" + taskId + "', this)\"><span class='text-yellow-500'>" + calendarIconSvg + "</span> Set Date</button>";
-        menuHtml += "<button class='flex items-center gap-2 w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600' onclick=\"startTaskEdit('" + taskId + "')\"><span class='text-blue-500'>" + editIconSvg + "</span> Edit</button>";
-        menuHtml += "<button class='flex items-center gap-2 w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600' onclick=\"deleteTask('" + taskId + "')\"><span class='text-red-500'>" + deleteIconSvg + "</span> Delete</button>";
+        menuHtml += "<button data-action='set-date' class='flex items-center gap-2 w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600'><span class='text-yellow-500'>" + calendarIconSvg + "</span> Set Date</button>";
+        menuHtml += "<button data-action='edit' class='flex items-center gap-2 w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600'><span class='text-blue-500'>" + editIconSvg + "</span> Edit</button>";
+        menuHtml += "<button data-action='delete' class='flex items-center gap-2 w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600'><span class='text-red-500'>" + deleteIconSvg + "</span> Delete</button>";
         menuHtml += "</div>";
     }
-
     menuHtml += "</div>";
     return menuHtml;
 }
 
-function toggleMenu(taskId, event) {
-    event.stopPropagation();
+function toggleMenu(taskId) {
     if (menuOpenForTaskId == taskId) {
         menuOpenForTaskId = null;
     } else {
@@ -261,12 +250,30 @@ document.addEventListener("click", function() {
     }
 });
 
+function buildTaskHtml(taskId, task, cardClass) {
+    var dateText = "";
+    if (task.date) {
+        dateText = " <span class='text-xs text-gray-500 dark:text-gray-400'>(" + formatDate(task.date) + ")</span>";
+    }
+    var menuHtml = buildMenuHtml(taskId);
+    var checkedAttr = task.IsCompleted ? " checked" : "";
+    var nameHtml = task.IsCompleted ? "<del>" + task.name + "</del>" : task.name;
+    return "<li class='" + cardClass + "' data-task-id='" + taskId + "'><span><input type='checkbox' data-action='toggle'" + checkedAttr + "> <span class='cursor-pointer' data-action='edit-name'>" + nameHtml + "</span>" + dateText + "</span>" + menuHtml + "</li>";
+}
+
+function buildEditHtml(taskId, task) {
+    var editRowHtml = "<li class='bg-white dark:bg-gray-800 rounded shadow p-4 mb-2 flex items-center gap-2' data-task-id='" + taskId + "'>";
+    editRowHtml += "<input type='text' id='editInput_" + taskId + "' value=\"" + task.name + "\" data-action='edit-input' class='rounded p-1 w-64 text-black dark:text-white bg-white dark:bg-gray-700'>";
+    editRowHtml += "<button title='Save' data-action='save' class='bg-green-500 text-white p-2 rounded'>" + checkIconSvg + "</button>";
+    editRowHtml += "<button title='Cancel' data-action='cancel' class='bg-gray-500 text-white p-2 rounded'>" + deleteIconSvg + "</button>";
+    editRowHtml += "</li>";
+    return editRowHtml;
+}
+
 function renderTasks() {
 
     var search = document.getElementById("searchInput").value.toLowerCase();
     var sort = document.getElementById("sortInput").value;
-    var filter = document.getElementById("filterInput").value;
-
     var cardClass = "bg-white dark:bg-gray-800 rounded shadow p-4 mb-2 flex items-center justify-between";
 
     var taskArray = Object.keys(currentList.tasks).map(function(taskId) {
@@ -276,135 +283,148 @@ function renderTasks() {
         };
     }).filter(function(item) {
         return item.task.name.toLowerCase().includes(search);
-    }).filter(function(item) {
-        if (filter == "all") {
-            return true;
-        }
-        return getDateCategory(item.task) == filter;
     });
-
 
     if (sort == "name") {
-
-        taskArray.sort(function(a,b) {
-
+        taskArray.sort(function(a, b) {
             return a.task.name.localeCompare(b.task.name);
-
         });
-
     }
 
-
-    if (sort == "date") {
-
-        taskArray.sort(function(a,b) {
-
-            if (a.task.date == "") {
-                return 1;
-            }
-
-            if (b.task.date == "") {
-                return -1;
-            }
-
+    if (sort == "date" || sort == "grouped") {
+        taskArray.sort(function(a, b) {
+            if (a.task.date == "") { return 1; }
+            if (b.task.date == "") { return -1; }
             return new Date(a.task.date) - new Date(b.task.date);
-
         });
-
     }
 
+    var totalCount = taskArray.length;
 
-    if (sort == "grouped") {
+    if (sort == "default" || sort == "name") {
 
-        var groupOrder = { past: 0, today: 1, upcoming: 2, none: 3 };
+        defaultView.classList.remove("hidden");
+        dateView.classList.add("hidden");
 
-        taskArray.sort(function(a,b) {
+        var pendingHtml = "";
+        var completedHtml = "";
+        var pendingCount = 0;
+        var completedCount = 0;
 
-            var aGroup = groupOrder[getDateCategory(a.task)];
-            var bGroup = groupOrder[getDateCategory(b.task)];
+        taskArray.forEach(function(item) {
+            var taskId = item.id;
+            var task = item.task;
 
-            if (aGroup != bGroup) {
-                return aGroup - bGroup;
+            if (taskId == taskIdBeingEdited) {
+                var editHtml = buildEditHtml(taskId, task);
+                if (task.IsCompleted == false) {
+                    pendingHtml += editHtml;
+                    pendingCount++;
+                } else {
+                    completedHtml += editHtml;
+                    completedCount++;
+                }
+                return;
             }
-
-            if (a.task.date == "") {
-                return 0;
-            }
-
-            return new Date(a.task.date) - new Date(b.task.date);
-
-        });
-
-    }
-
-    var pendingHtml = "";
-    var completedHtml = "";
-    var pendingCount = 0;
-    var completedCount = 0;
-
-    taskArray.forEach(function(item) {
-
-        var taskId = item.id;
-        var task = item.task;
-
-        if (taskId == taskIdBeingEdited) {
-
-            var editRowHtml = "<li class='bg-white dark:bg-gray-800 rounded shadow p-4 mb-2 flex items-center gap-2'>";
-            editRowHtml += "<input type='text' id='editInput_" + taskId + "' value=\"" + task.name + "\" onkeydown=\"if (event.key == 'Enter') { saveTaskEdit('" + taskId + "'); }\" class='rounded p-1 w-64 text-black dark:text-white bg-white dark:bg-gray-700'>";
-            editRowHtml += "<button title='Save' class='bg-green-500 text-white p-2 rounded' onclick=\"saveTaskEdit('" + taskId + "')\">" + checkIconSvg + "</button>";
-            editRowHtml += "<button title='Cancel' class='bg-gray-500 text-white p-2 rounded' onclick=\"cancelTaskEdit()\">" + deleteIconSvg + "</button>";
-            editRowHtml += "</li>";
 
             if (task.IsCompleted == false) {
-                pendingHtml += editRowHtml;
+                pendingHtml += buildTaskHtml(taskId, task, cardClass);
                 pendingCount++;
             } else {
-                completedHtml += editRowHtml;
+                completedHtml += buildTaskHtml(taskId, task, cardClass);
                 completedCount++;
             }
+        });
 
-            return;
+        pendingList.innerHTML = pendingHtml;
+        completedList.innerHTML = completedHtml;
 
-        }
-
-        var dateText = "";
-
-        if (task.date) {
-            dateText = " <span class='text-xs text-gray-500 dark:text-gray-400'>(" + formatDate(task.date) + ")</span>";
-        }
-
-        var menuHtml = buildMenuHtml(taskId);
-
-        if (task.IsCompleted == false) {
-
-            pendingHtml += "<li class='" + cardClass + "'><span><input type='checkbox' onclick=\"toggleTask('" + taskId + "')\"> <span class='cursor-pointer' onclick=\"startTaskEdit('" + taskId + "')\">" + task.name + "</span>" + dateText + "</span>" + menuHtml + "</li>";
-            pendingCount++;
-
+        if (pendingCount > 0) {
+            pendingHeading.classList.remove("hidden");
         } else {
-
-            completedHtml += "<li class='" + cardClass + "'><span><input type='checkbox' checked onclick=\"toggleTask('" + taskId + "')\"> <span class='cursor-pointer' onclick=\"startTaskEdit('" + taskId + "')\"><del>" + task.name + "</del></span>" + dateText + "</span>" + menuHtml + "</li>";
-            completedCount++;
-
+            pendingHeading.classList.add("hidden");
         }
 
-    });
+        if (completedCount > 0) {
+            completedHeading.classList.remove("hidden");
+        } else {
+            completedHeading.classList.add("hidden");
+        }
 
-    pendingList.innerHTML = pendingHtml;
-    completedList.innerHTML = completedHtml;
-
-    if (pendingCount > 0) {
-        pendingHeading.classList.remove("hidden");
     } else {
-        pendingHeading.classList.add("hidden");
+
+        defaultView.classList.add("hidden");
+        dateView.classList.remove("hidden");
+
+        var pastHtml = "";
+        var todayHtml = "";
+        var upcomingHtml = "";
+        var noDateHtml = "";
+        var pastCount = 0;
+        var todayCount = 0;
+        var upcomingCount = 0;
+        var noDateCount = 0;
+
+        taskArray.forEach(function(item) {
+            var taskId = item.id;
+            var task = item.task;
+            var category = getDateCategory(task);
+
+            var rowHtml = "";
+
+            if (taskId == taskIdBeingEdited) {
+                rowHtml = buildEditHtml(taskId, task);
+            } else {
+                rowHtml = buildTaskHtml(taskId, task, cardClass);
+            }
+
+            if (category == "past") {
+                pastHtml += rowHtml;
+                pastCount++;
+            } else if (category == "today") {
+                todayHtml += rowHtml;
+                todayCount++;
+            } else if (category == "upcoming") {
+                upcomingHtml += rowHtml;
+                upcomingCount++;
+            } else {
+                noDateHtml += rowHtml;
+                noDateCount++;
+            }
+        });
+
+        document.getElementById("pastList").innerHTML = pastHtml;
+        document.getElementById("todayList").innerHTML = todayHtml;
+        document.getElementById("upcomingList").innerHTML = upcomingHtml;
+        document.getElementById("noDateList").innerHTML = noDateHtml;
+
+        if (pastCount > 0) {
+            document.getElementById("pastSection").classList.remove("hidden");
+        } else {
+            document.getElementById("pastSection").classList.add("hidden");
+        }
+
+        if (todayCount > 0) {
+            document.getElementById("todaySection").classList.remove("hidden");
+        } else {
+            document.getElementById("todaySection").classList.add("hidden");
+        }
+
+        if (upcomingCount > 0) {
+            document.getElementById("upcomingSection").classList.remove("hidden");
+        } else {
+            document.getElementById("upcomingSection").classList.add("hidden");
+        }
+
+        if (noDateCount > 0) {
+            document.getElementById("noDateSection").classList.remove("hidden");
+        } else {
+            document.getElementById("noDateSection").classList.add("hidden");
+        }
+
     }
 
-    if (completedCount > 0) {
-        completedHeading.classList.remove("hidden");
-    } else {
-        completedHeading.classList.add("hidden");
-    }
-
-    if (pendingCount == 0 && completedCount == 0) {
+    if (totalCount == 0) {
         var totalTasks = Object.keys(currentList.tasks).length;
         if (totalTasks == 0) {
             emptyMessage.textContent = "No tasks have been added yet";
@@ -425,10 +445,63 @@ function renderTasks() {
 
 }
 
+taskListsContainer.addEventListener("click", function(e) {
+
+    var actionElement = e.target.closest("[data-action]");
+    if (actionElement == null) {
+        return;
+    }
+
+    var action = actionElement.dataset.action;
+    var row = actionElement.closest("[data-task-id]");
+    var taskId = row != null ? row.dataset.taskId : null;
+
+    if (action == "menu-toggle") {
+        e.stopPropagation();
+        toggleMenu(taskId);
+        return;
+    }
+    if (action == "toggle") {
+        toggleTask(taskId);
+        return;
+    }
+    if (action == "edit-name" || action == "edit") {
+        startTaskEdit(taskId);
+        return;
+    }
+    if (action == "set-date") {
+        setTaskDate(taskId, actionElement);
+        return;
+    }
+    if (action == "delete") {
+        deleteTask(taskId);
+        return;
+    }
+    if (action == "save") {
+        saveTaskEdit(taskId);
+        return;
+    }
+    if (action == "cancel") {
+        cancelTaskEdit();
+        return;
+    }
+});
+
+taskListsContainer.addEventListener("keydown", function(e) {
+    if (e.key == "Enter") {
+        var input = e.target.closest("[data-action='edit-input']");
+        if (input != null) {
+            var row = input.closest("[data-task-id]");
+            if (row != null) {
+                saveTaskEdit(row.dataset.taskId);
+            }
+        }
+    }
+});
+
 clearBtn.onclick = function() {
     document.getElementById("searchInput").value = "";
-    document.getElementById("filterInput").value = "all";
-    document.getElementById("sortInput").value = "date";
+    document.getElementById("sortInput").value = "default";
     renderTasks();
 };
 
@@ -444,45 +517,23 @@ function cancelTaskEdit() {
 }
 
 function saveTaskEdit(taskId) {
-
     var input = document.getElementById("editInput_" + taskId);
-    var newText = input.value.trim();
-
-    if (newText != "") {
-        currentList.tasks[taskId].name = newText;
-        saveData();
-    }
-
+    currentList.tasks[taskId].rename(input.value);
     taskIdBeingEdited = null;
+    saveData();
     renderTasks();
-
 }
 
 addTaskBtn.onclick = function() {
-
     var text = taskInput.value;
-
     if (text == "") {
         return;
     }
-
     var newTaskId = generateId(currentList.tasks);
-
-    currentList.tasks[newTaskId] = {
-
-        name: text,
-        IsCompleted: false,
-        date: ""
-
-    };
-
-
+    currentList.addTask(newTaskId, new Task(text));
     saveData();
-
     taskInput.value = "";
-
     renderTasks();
-
 };
 
 taskInput.addEventListener("keydown", function(e) {
@@ -492,22 +543,9 @@ taskInput.addEventListener("keydown", function(e) {
 });
 
 function toggleTask(taskId) {
-
-    if (currentList.tasks[taskId].IsCompleted == true) {
-
-        currentList.tasks[taskId].IsCompleted = false;
-
-    } else {
-
-        currentList.tasks[taskId].IsCompleted = true;
-
-    }
-
-
+    currentList.tasks[taskId].toggle();
     saveData();
-
     renderTasks();
-
 }
 
 var taskIdBeingDated = null;
@@ -516,7 +554,7 @@ var datePicker = flatpickr("#hiddenDateInput", {
     dateFormat: "Y-m-d",
     onChange: function(selectedDates, dateStr) {
         if (taskIdBeingDated != null) {
-            currentList.tasks[taskIdBeingDated].date = dateStr;
+            currentList.tasks[taskIdBeingDated].setDate(dateStr);
             saveData();
             renderTasks();
             taskIdBeingDated = null;
@@ -525,33 +563,23 @@ var datePicker = flatpickr("#hiddenDateInput", {
 });
 
 function setTaskDate(taskId, buttonElement) {
-
     menuOpenForTaskId = null;
     taskIdBeingDated = taskId;
-
     datePicker.set("positionElement", buttonElement);
-
     datePicker.setDate(currentList.tasks[taskId].date || null);
-
     datePicker.open();
-
 }
 
 function deleteTask(taskId) {
-
     menuOpenForTaskId = null;
-    delete currentList.tasks[taskId];
-
+    currentList.deleteTask(taskId);
     saveData();
-
     renderTasks();
-
 }
 
 async function startPage() {
     try {
         var handle = await loadFileHandle();
-
         if (handle == null) {
             showNotification("please log in and pick your data file", true);
             setTimeout(function() {
@@ -559,20 +587,14 @@ async function startPage() {
             }, 1500);
             return;
         }
-
         fileHandle = handle;
-
         data = await readDataFromFile(fileHandle);
         if (data.lists == null) {
             data.lists = {};
         }
-
         currentList = data.lists[listId];
-
         listTitle.innerHTML = currentList.name;
-
         renderTasks();
-
     } catch (err) {
         showNotification("could not read the data file", true);
     }

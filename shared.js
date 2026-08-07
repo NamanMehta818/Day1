@@ -1,3 +1,72 @@
+class Task {
+    constructor(name, IsCompleted, date) {
+        this.name = name;
+        this.IsCompleted = IsCompleted || false;
+        this.date = date || "";
+    }
+
+    toggle() {
+        this.IsCompleted = !this.IsCompleted;
+    }
+
+    rename(newName) {
+        newName = newName.trim();
+        if (newName != "") {
+            this.name = newName;
+        }
+    }
+
+    setDate(dateStr) {
+        this.date = dateStr;
+    }
+
+    getDateCategory(todayString) {
+        if (this.date == "") { return "none"; }
+        if (this.date == todayString) { return "today"; }
+        if (this.date > todayString) { return "upcoming"; }
+        return "past";
+    }
+
+    static fromJSON(obj) {
+        return new Task(obj.name, obj.IsCompleted, obj.date);
+    }
+}
+
+class List {
+    constructor(id, name) {
+        this.id = id;
+        this.name = name;
+        this.tasks = {};
+    }
+
+    rename(newName) {
+        newName = newName.trim();
+        if (newName != "") {
+            this.name = newName;
+        }
+    }
+
+    addTask(taskId, task) {
+        this.tasks[taskId] = task;
+    }
+
+    deleteTask(taskId) {
+        delete this.tasks[taskId];
+    }
+
+    taskCount() {
+        return Object.keys(this.tasks).length;
+    }
+
+    static fromJSON(obj) {
+        var list = new List(obj.id, obj.name);
+        for (var taskId in obj.tasks) {
+            list.tasks[taskId] = Task.fromJSON(obj.tasks[taskId]);
+        }
+        return list;
+    }
+}
+
 var boyAvatarSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='#3b82f6' stroke='#1e40af' stroke-width='1'><circle cx='12' cy='8' r='5'/><path d='M3 21v-1a7 7 0 0 1 7-7h4a7 7 0 0 1 7 7v1z'/></svg>";
 var girlAvatarSvg = "<svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='#ec4899' stroke='#be185d' stroke-width='1'><circle cx='12' cy='8' r='5'/><path d='M4 21c0-5 3-8 8-8s8 3 8 8z'/><path d='M5 8a7 7 0 0 1 14 0'/></svg>";
 
@@ -126,10 +195,18 @@ async function readDataFromFile(handle) {
     var file = await handle.getFile();
     var text = await file.text();
 
+    var plain;
     if (text.trim() === "") {
-        return { lists: {} };
+        plain = { lists: {} };
+    } else {
+        plain = JSON.parse(text);
     }
-    return JSON.parse(text);
+
+    var data = { lists: {} };
+    for (var listId in plain.lists) {
+        data.lists[listId] = List.fromJSON(plain.lists[listId]);
+    }
+    return data;
 }
 
 async function writeDataToFile(handle, data) {
@@ -224,4 +301,4 @@ function setupHeader() {
         updateCalendarTheme(darkModeOn);
     };
 
-}
+}   

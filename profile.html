@@ -14,7 +14,15 @@
 <body class="bg-gray-100 dark:bg-gray-900 text-black dark:text-white min-h-screen p-8 flex flex-col">
 
     <header class="flex justify-between items-center mb-6">
-        <button id="darkModeBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800 text-lg"></button>
+        <div class="flex items-center gap-3">
+            <a href="lists.html" title="Home" class="rounded p-2 bg-white dark:bg-gray-800 inline-flex">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+            </a>
+            <button id="darkModeBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800 text-lg"></button>
+        </div>
         <div class="flex items-center gap-3">
             <button id="avatarBtn" title="Click to change avatar"></button>
             <div class="relative">
