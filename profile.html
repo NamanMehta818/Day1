@@ -11,14 +11,32 @@
     <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
     <script src="shared.js"></script>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-black dark:text-white min-h-screen p-8">
+<body class="bg-gray-100 dark:bg-gray-900 text-black dark:text-white min-h-screen p-8 flex flex-col">
 
     <header class="flex justify-between items-center mb-6">
-        <button id="darkModeBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800 text-lg"></button>
+        <div class="flex items-center gap-3">
+            <a href="lists.html" title="Home" class="rounded p-2 bg-white dark:bg-gray-800 inline-flex">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+            </a>
+            <button id="darkModeBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800 text-lg"></button>
+        </div>
         <div class="flex items-center gap-3">
             <button id="avatarBtn" title="Click to change avatar"></button>
-            <span id="usernameSpan" class="cursor-pointer"></span>
-            <button id="signOutBtn" class="rounded px-3 py-1 bg-white dark:bg-gray-800">Sign Out</button>
+            <div class="relative">
+                <button id="userMenuBtn" class="flex items-center gap-1 rounded px-3 py-1 bg-white dark:bg-gray-800">
+                    <span id="usernameSpan"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <div id="userMenuDropdown" class="hidden absolute right-0 mt-1 w-32 bg-white dark:bg-gray-700 rounded shadow z-10">
+                    <button id="profileMenuItem" class="block w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600">Profile</button>
+                    <button id="signOutMenuItem" class="block w-full text-left p-2 hover:bg-gray-100 dark:hover:bg-gray-600">Sign Out</button>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -62,6 +80,9 @@
                     <input type="password" id="newPassword" required class="rounded w-full p-2 mb-1 text-black dark:text-white bg-gray-100 dark:bg-gray-700">
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Must be 8+ characters, have 1 capital letter and 1 special character</p>
 
+                    <label for="retypePassword" class="block mb-1">Retype New Password:</label>
+                    <input type="password" id="retypePassword" required class="rounded w-full p-2 mb-4 text-black dark:text-white bg-gray-100 dark:bg-gray-700">
+
                     <button type="submit" class="bg-purple-800 text-white font-semibold rounded p-3">Change Password</button>
 
                 </form>
@@ -70,6 +91,8 @@
         </div>
 
     </div>
+
+    <footer class="text-center text-gray-500 dark:text-gray-400 mt-auto pt-8">Footer</footer>
 
     <script>
     if (sessionStorage.getItem("loggedIn") !== "true") {
@@ -222,6 +245,7 @@
 
         var currentPassword = document.getElementById("currentPassword").value;
         var newPassword = document.getElementById("newPassword").value;
+        var retypePassword = document.getElementById("retypePassword").value;
 
         var users = getUsers();
         var matchedUser = findCurrentUser(users);
@@ -243,6 +267,11 @@
             return;
         }
 
+        if (newPassword !== retypePassword) {
+            showNotification("passwords do not match", true);
+            return;
+        }
+
         matchedUser.password = dcodeIO.bcrypt.hashSync(newPassword, 10);
 
         localStorage.setItem("users", JSON.stringify(users));
@@ -251,6 +280,7 @@
 
         document.getElementById("currentPassword").value = "";
         document.getElementById("newPassword").value = "";
+        document.getElementById("retypePassword").value = "";
     });
 
     }
